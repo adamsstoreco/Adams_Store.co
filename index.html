@@ -334,7 +334,9 @@ body{background:var(--bg);color:var(--txt);font-family:Inter,sans-serif;font-siz
 .ct-fenix{background:linear-gradient(135deg,#071828,#0d2540)}
 .ct-pmdg{background:linear-gradient(135deg,#060e1e,#0a1630)}
 .ct-gsx{background:linear-gradient(135deg,#0f0e04,#1a1a06)}
+.ct-fs2{background:linear-gradient(135deg,#1a1400,#2e2200)}
 .ct-nav{background:linear-gradient(135deg,#06080f,#0e1220)}
+.card.cat-fs2crew:hover{border-color:rgba(234,179,8,.7);box-shadow:0 24px 56px rgba(234,179,8,.2),0 0 0 1px rgba(234,179,8,.12);background:linear-gradient(160deg,#0f0c00 60%,#1c1600)}
 .card-badge{position:absolute;top:10px;left:10px;font-size:10px;font-weight:700;padding:3px 9px;border-radius:5px;text-transform:uppercase;letter-spacing:.3px;z-index:2}
 .b-hot{background:rgba(239,68,68,.22);color:#f87171;border:1px solid rgba(239,68,68,.35)}
 .b-new{background:rgba(34,197,94,.15);color:#4ade80;border:1px solid rgba(34,197,94,.28)}
@@ -1583,9 +1585,51 @@ var PRODS=[
     badge:'new',
     desc_bm: 'Beyond ATC ialah add-on ATC pintar untuk flight simulator yang menggunakan teknologi AI untuk memberikan arahan trafik udara yang lebih realistik, natural dan dinamik. Ia menggantikan ATC default dengan komunikasi yang lebih immersive seperti penerbangan sebenar.',
     desc_en: 'Beyond ATC is a smart AI-powered ATC add-on for flight simulators that provides more realistic, natural, and dynamic air traffic control interactions. It replaces default ATC with immersive, real-world-style communication for a better simulation experience.'
+  },
+  {
+    id:8,
+    name:'FS2Crew PMDG 777',
+    cat:'fs2crew',
+    thumb:'ct-fs2',
+    image:'https://i.imgur.com/ioD7T4H.jpeg',
+    emoji:'&#127908;',
+    price:22,
+    soon:true,
+    tags:['Voice Control','Crew','PMDG 777'],
+    badge:'new',
+    desc_bm: 'FS2Crew untuk PMDG 777 membolehkan anda mengeluarkan arahan suara kepada co-pilot virtual anda. Automasi checklist, cabin crew calls, dan interaksi penuh dengan sistem Boeing 777 secara hands-free.',
+    desc_en: 'FS2Crew for PMDG 777 lets you issue voice commands to your virtual first officer. Automate checklists, cabin crew calls, and fully interact with Boeing 777 systems hands-free.'
+  },
+  {
+    id:9,
+    name:'FS2Crew PMDG 737',
+    cat:'fs2crew',
+    thumb:'ct-fs2',
+    image:'https://i.imgur.com/ioD7T4H.jpeg',
+    emoji:'&#127908;',
+    price:20,
+    soon:true,
+    tags:['Voice Control','Crew','PMDG 737'],
+    badge:null,
+    desc_bm: 'FS2Crew untuk PMDG 737 membolehkan co-pilot virtual bertindak balas kepada arahan suara anda. Lengkap dengan automated checklist flow, pushback calls, dan cabin announcements.',
+    desc_en: 'FS2Crew for PMDG 737 enables your virtual co-pilot to respond to voice commands. Complete with automated checklist flows, pushback calls, and cabin announcements.'
+  },
+  {
+    id:10,
+    name:'FS2Crew Fenix A320',
+    cat:'fs2crew',
+    thumb:'ct-fs2',
+    image:'https://i.imgur.com/660IDwv.png',
+    emoji:'&#127908;',
+    price:20,
+    soon:true,
+    tags:['Voice Control','Crew','Fenix A320'],
+    badge:null,
+    desc_bm: 'FS2Crew untuk Fenix A320 menghidupkan kokpit anda dengan co-pilot AI yang responsif. Buat checklist, cabin calls dan interaksi crew Airbus A320 secara realistik menggunakan arahan suara.',
+    desc_en: 'FS2Crew for Fenix A320 brings your cockpit to life with a responsive AI co-pilot. Perform checklists, cabin calls and realistic Airbus A320 crew interactions using voice commands.'
   }
 ];
-var DEVLBL={fenix:'Fenix Simulations',pmdg:'PMDG',gsx:'FSDreamTeam',navigraph:'Navigraph',inibuilds:'iniBuilds',beyondatc:'BeyondATC'};
+var DEVLBL={fenix:'Fenix Simulations',pmdg:'PMDG',gsx:'FSDreamTeam',navigraph:'Navigraph',inibuilds:'iniBuilds',beyondatc:'BeyondATC',fs2crew:'FS2Crew'};
 var BDGCLS={hot:'b-hot',new:'b-new'};
 var cart=[],filt='all',srt='default',payMethod='tng',lang='bm';
 var uploadedFile=null,uploadedB64=null;
