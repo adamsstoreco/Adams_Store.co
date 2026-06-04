@@ -973,6 +973,31 @@ footer a{color:var(--muted);text-decoration:none}
   .staff-btn{display:none}
 }
 
+/* ===== GLOBAL MOBILE OVERFLOW FIX ===== */
+html,body{max-width:100%;overflow-x:hidden}
+.page{max-width:100vw;overflow-x:hidden}
+/* Skrin sangat kecil */
+@media(max-width:360px){
+  .desc-wrap{padding:16px 10px 60px}
+  .desc-title{font-size:18px}
+  .desc-text{font-size:13px}
+  .desc-price{font-size:24px}
+  .feat-box{padding:8px 5px}
+  .feat-box span{font-size:9px}
+  .nav{padding:0 10px}
+  .hero{padding:38px 12px 32px}
+  .shop{padding:12px 10px 48px}
+  .fbar{padding:8px 10px}
+  .review-form-box{padding:14px 10px}
+}
+/* Touch target min 44px & fix desc actions on mobile */
+@media(max-width:600px){
+  .btn-pri,.btn-secondary,.sub-btn,.back-btn,.add-btn{min-height:44px}
+  .desc-actions{flex-direction:column;gap:10px}
+  .desc-actions .btn-pri{width:100%;box-sizing:border-box}
+  .btn-secondary{width:100%;justify-content:center}
+}
+
 /* ===== INTRO SCREEN ===== */
 #introScreen{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;align-items:center;justify-content:center;flex-direction:column;overflow:hidden}
 #introScreen .ig1{position:absolute;top:-80px;left:-80px;width:500px;height:500px;background:radial-gradient(circle,rgba(91,110,245,.18),transparent 65%);pointer-events:none}
@@ -4052,6 +4077,16 @@ if(currentUser){
   applyTheme('dark');
 }
 autoFillCheckout();
+
+// Fix: Jika halaman description aktif tapi tiada produk (contoh: selepas refresh),
+// redirect ke kedai supaya user tak tersekat.
+(function(){
+  var descPage = document.getElementById('pageDescription');
+  if(descPage && descPage.classList.contains('active') && !currentProductId){
+    showPage('pageShop');
+    window.scrollTo(0,0);
+  }
+})();
 
 // Redraw chart on resize
 window.addEventListener('resize', function(){
