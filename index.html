@@ -69,10 +69,14 @@ window._fb = {
     return fbFetch('/orders/'+docId+'.json', 'PATCH', {status: status}).catch(function(e){ console.error('updateStatus',e); });
   },
   deleteOrder: function(docId) {
-    return fbFetch('/orders/'+docId+'.json', 'DELETE').catch(function(e){ console.error('deleteOrder',e); });
+    return fbFetch('/orders/'+docId+'.json', 'DELETE').then(function(result){
+      return result;
+    }).catch(function(e){ console.error('deleteOrder',e); throw e; });
   },
   clearAll: function() {
-    return fbFetch('/orders.json', 'DELETE').catch(function(e){ console.error('clearAll',e); });
+    return fbFetch('/orders.json', 'DELETE').then(function(result){
+      return result;
+    }).catch(function(e){ console.error('clearAll',e); throw e; });
   },
   // User account functions
   checkUser: function(email) {
@@ -1081,7 +1085,7 @@ footer a{color:var(--muted);text-decoration:none}
 .st-logo-wrap{text-align:center;margin-bottom:16px}
 .st-logo-icon{width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,var(--acc),var(--acch));display:inline-flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 4px 16px rgba(91,110,245,.4)}
 /* ===== DELETE CONFIRM MODAL ===== */
-.del-modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:900;backdrop-filter:blur(8px);align-items:center;justify-content:center}
+.del-modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:9999;backdrop-filter:blur(8px);align-items:center;justify-content:center}
 .del-modal-ov.open{display:flex}
 .del-modal{background:var(--surf);border:1px solid var(--bord);border-radius:16px;padding:32px 28px;width:340px;max-width:calc(100vw - 32px);animation:authIn .3s cubic-bezier(.22,1,.36,1)}
 .del-modal-icon{width:52px;height:52px;border-radius:14px;background:var(--redd);border:1px solid rgba(239,68,68,.3);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;color:var(--red);font-size:22px}
@@ -3177,16 +3181,67 @@ function checkDelInput(){
 
 function closeDelModal(){
   document.getElementById('delModalOv').classList.remove('open');
+  // Reset button states
+  var btn = document.getElementById('delConfirmBtn');
+  var cancelBtn = document.querySelector('.del-cancel-btn');
+  if(btn){ btn.disabled = false; btn.textContent = lang==='bm' ? 'Padam' : 'Delete'; }
+  if(cancelBtn) cancelBtn.disabled = false;
+  // Reset input
+  var inp = document.getElementById('delModalInput');
+  if(inp) inp.value = '';
   _delAction = null; _delDocId = null;
 }
 
 function execDel(){
+  var btn = document.getElementById('delConfirmBtn');
+  var cancelBtn = document.querySelector('.del-cancel-btn');
+  if(!_delAction) return;
+
+  // Show loading state
+  btn.disabled = true;
+  btn.textContent = '...';
+  if(cancelBtn) cancelBtn.disabled = true;
+
   if(_delAction === 'single' && _delDocId){
-    closeDelModal();
-    window._fb.deleteOrder(_delDocId).then(renderDash);
+    var docIdToDelete = _delDocId;
+    window._fb.deleteOrder(docIdToDelete).then(function(result){
+      closeDelModal();
+      if(cancelBtn) cancelBtn.disabled = false;
+      // Remove card from DOM instantly without full reload
+      var card = document.getElementById('oc-'+docIdToDelete);
+      if(card){
+        card.style.transition = 'opacity .3s, transform .3s';
+        card.style.opacity = '0';
+        card.style.transform = 'scale(0.96)';
+        setTimeout(function(){ card.remove(); }, 300);
+      }
+      // Update orders list and re-render stats
+      if(window._currentOrders){
+        window._currentOrders = window._currentOrders.filter(function(o){ return o._docId !== docIdToDelete; });
+      }
+      renderDash();
+      toast(lang==='bm' ? 'Pesanan berjaya dipadam.' : 'Order deleted successfully.');
+    }).catch(function(e){
+      console.error('deleteOrder failed:', e);
+      btn.disabled = false;
+      btn.textContent = lang==='bm' ? 'Padam' : 'Delete';
+      if(cancelBtn) cancelBtn.disabled = false;
+      document.getElementById('delModalSub').innerHTML = '<span style="color:var(--red)">&#9888; Gagal memadam. Semak Firebase Rules atau sambungan internet.</span>';
+    });
   } else if(_delAction === 'all'){
-    closeDelModal();
-    window._fb.clearAll().then(renderDash);
+    window._fb.clearAll().then(function(){
+      closeDelModal();
+      if(cancelBtn) cancelBtn.disabled = false;
+      window._currentOrders = [];
+      renderDash();
+      toast(lang==='bm' ? 'Semua pesanan telah dipadam.' : 'All orders deleted.');
+    }).catch(function(e){
+      console.error('clearAll failed:', e);
+      btn.disabled = false;
+      btn.textContent = lang==='bm' ? 'Padam' : 'Delete';
+      if(cancelBtn) cancelBtn.disabled = false;
+      document.getElementById('delModalSub').innerHTML = '<span style="color:var(--red)">&#9888; Gagal memadam. Semak Firebase Rules atau sambungan internet.</span>';
+    });
   }
 }
 function zoomOrder(docId){
