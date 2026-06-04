@@ -4078,7 +4078,6 @@ if(currentUser){
   applyTheme(currentUser.theme||'dark');
   var s = document.getElementById('introScreen');
   if(s) s.style.display='none';
-  showPage('pageShop');
 } else {
   applyTheme('dark');
 }
@@ -4133,6 +4132,9 @@ autoFillCheckout();
     try{ sessionStorage.removeItem('adamsActivePage'); sessionStorage.removeItem('adamsCartSession'); sessionStorage.removeItem('adamsCheckoutStep'); }catch(e){}
     showPage('pageShop');
     window.scrollTo(0,0);
+  } else if(currentUser){
+    // Tiada saved page yang spesifik — default ke shop
+    showPage('pageShop');
   }
 })();
 
