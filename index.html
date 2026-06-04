@@ -2976,6 +2976,8 @@ function closeCart(){document.getElementById('overlay').classList.remove('open')
 
 function goCheckout(){
   if(cart.length===0){toast('Troli kosong!');return;}
+  // Simpan cart ke sessionStorage supaya boleh restore bila refresh
+  try{ sessionStorage.setItem('adamsCartSession', JSON.stringify(cart)); }catch(e){}
   if(!currentUser){
     _authFromCheckout = true;
     toast(lang==='bm' ? 'Sila daftar atau log masuk untuk meneruskan pembayaran.' : 'Please sign in or register to proceed to checkout.');
@@ -3004,6 +3006,8 @@ function showPage(id){
   document.getElementById('mainNav').style.display='flex';
   document.getElementById(id).classList.add('active');
   updateBuyerChatFab();
+  // Simpan page semasa untuk restore bila refresh
+  try{ sessionStorage.setItem('adamsActivePage', id); }catch(e){}
 }
 
 function selPay(m){
@@ -4078,15 +4082,60 @@ if(currentUser){
 }
 autoFillCheckout();
 
-// Fix: Jika halaman description aktif tapi tiada produk (contoh: selepas refresh),
-// redirect ke kedai supaya user tak tersekat.
+// Restore page & cart selepas refresh
 (function(){
-  var descPage = document.getElementById('pageDescription');
-  if(descPage && descPage.classList.contains('active') && !currentProductId){
+  var savedPage = null;
+  try{ savedPage = sessionStorage.getItem('adamsActivePage'); }catch(e){}
+
+  // Restore cart jika ada dalam session (untuk checkout page)
+  if(savedPage === 'pageCheckout' || savedPage === 'pageSuccess'){
+    try{
+      var savedCart = sessionStorage.getItem('adamsCartSession');
+      if(savedCart){
+        var parsedCart = JSON.parse(savedCart);
+        if(Array.isArray(parsedCart) && parsedCart.length > 0){
+          cart = parsedCart;
+          document.getElementById('cartBadge').textContent = cart.length;
+          renderCart();
+          updateCheckoutTotal();
+        }
+      }
+    }catch(e){}
+  }
+
+  // Restore halaman yang betul
+  if(savedPage === 'pageCheckout'){
+    if(cart.length > 0 && currentUser){
+      showPage('pageCheckout');
+      setCheckoutStep(2);
+      window.scrollTo(0,0);
+      autoFillCheckout();
+    } else {
+      // Cart kosong atau tak login — pergi shop
+      try{ sessionStorage.removeItem('adamsActivePage'); sessionStorage.removeItem('adamsCartSession'); }catch(e){}
+      showPage('pageShop');
+    }
+  } else if(savedPage === 'pageDescription'){
+    // Description page tapi tiada produk data — pergi shop
+    if(!currentProductId){
+      try{ sessionStorage.removeItem('adamsActivePage'); }catch(e){}
+      showPage('pageShop');
+      window.scrollTo(0,0);
+    }
+  } else if(savedPage === 'pageSuccess'){
+    // Success page lepas refresh — pergi shop (order dah submit)
+    try{ sessionStorage.removeItem('adamsActivePage'); sessionStorage.removeItem('adamsCartSession'); }catch(e){}
     showPage('pageShop');
     window.scrollTo(0,0);
   }
 })();
+
+// Bersihkan cart session bila order berjaya
+var _origFinishOrder = finishOrder;
+finishOrder = function(order, name, email, payLbl, total, btn){
+  try{ sessionStorage.removeItem('adamsCartSession'); }catch(e){}
+  _origFinishOrder(order, name, email, payLbl, total, btn);
+};
 
 // Redraw chart on resize
 window.addEventListener('resize', function(){
