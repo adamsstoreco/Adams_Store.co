@@ -3022,6 +3022,8 @@ function submitOrder(){
   if(!validEmail(email)){document.getElementById('errEmail').classList.add('show');document.getElementById('buyerEmail').classList.add('err');ok=false;}
   if(!uploadedFile){document.getElementById('errProof').classList.add('show');ok=false;}
   if(!ok) return;
+  // Save payment info (name + email) to localStorage for future use
+  try { localStorage.setItem('adamsstore_payinfo', JSON.stringify({name:name, email:email})); } catch(e){}
   var total=cart.reduce(function(s,p){return s+p.price;},0);
   var discAmt = appliedDiscount ? Math.round(total * appliedDiscount.pct / 100 * 100)/100 : 0;
   var finalTotal = parseFloat((total - discAmt).toFixed(2));
@@ -3486,7 +3488,7 @@ function doSignIn(){
   window._fb.loginUser(email, pw).then(function(res){
     btn.disabled=false; btn.innerHTML='<i class="ti ti-login" style="font-size:14px"></i> Log Masuk';
     if(res.success){
-      saveSession(res.user);
+      saveSession(res.user); try{localStorage.setItem('adamsstore_payinfo',JSON.stringify({name:res.user.name||'',email:res.user.email||''}))}catch(e_){}
       applyTheme(res.user.theme||'dark');
       var ok = document.getElementById('authMsgOk');
       ok.textContent = 'Selamat datang, '+(res.user.username?'@'+res.user.username:res.user.name)+'! ✓';
@@ -3537,7 +3539,7 @@ function doSignUp(){
         if(user){
           // Reserve username
           window._fb.reserveUsername(username, email);
-          saveSession(user);
+          saveSession(user); try{localStorage.setItem('adamsstore_payinfo',JSON.stringify({name:user.name||'',email:user.email||''}))}catch(e_){}
           applyTheme(user.theme||'dark');
           var ok = document.getElementById('authMsgOk');
           ok.textContent = 'Akaun berjaya dicipta! Selamat datang, @'+username+' ✓';
@@ -3567,13 +3569,23 @@ function doLogout(){
   toast('Anda telah log keluar.');
 }
 
-// Auto-fill checkout when logged in
+// Auto-fill checkout when logged in, or from saved payment info
 function autoFillCheckout(){
+  var n = document.getElementById('buyerName');
+  var e = document.getElementById('buyerEmail');
+  if(!n || !e) return;
   if(currentUser){
-    var n = document.getElementById('buyerName');
-    var e = document.getElementById('buyerEmail');
-    if(n && !n.value) n.value = currentUser.name||'';
-    if(e && !e.value) e.value = currentUser.email||'';
+    if(!n.value) n.value = currentUser.name||'';
+    if(!e.value) e.value = currentUser.email||'';
+  } else {
+    try {
+      var saved = localStorage.getItem('adamsstore_payinfo');
+      if(saved){
+        var info = JSON.parse(saved);
+        if(!n.value && info.name) n.value = info.name;
+        if(!e.value && info.email) e.value = info.email;
+      }
+    } catch(e2){}
   }
 }
 
@@ -4035,6 +4047,7 @@ if(currentUser){
   applyTheme(currentUser.theme||'dark');
   var s = document.getElementById('introScreen');
   if(s) s.style.display='none';
+  showPage('pageShop');
 } else {
   applyTheme('dark');
 }
