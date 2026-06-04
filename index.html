@@ -6,7 +6,6 @@
 <title>Adam's Store</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
-<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script>
 var DB_URL = "https://adamsstoreco-6591c-default-rtdb.asia-southeast1.firebasedatabase.app";
 
@@ -157,6 +156,43 @@ window._fb = {
     var key = emailToKey(email);
     var user = { name: name, email: email, username: username||'', passwordHash: simpleHash(password), createdAt: Date.now(), bio:'', theme:'dark' };
     return fbFetch('/users/'+key+'.json', 'PUT', user).then(function(){ return user; }).catch(function(e){ console.error('registerUser',e); return null; });
+  },
+  // ===== CHAT =====
+  getChats: function() {
+    return fbFetch('/chats.json','GET').then(function(data){
+      if(!data||typeof data!=='object') return [];
+      return Object.keys(data).map(function(k){
+        var c = data[k];
+        return {key:k, name:c.name||k, email:c.email||'', lastMsg:c.lastMsg||'', lastTime:c.lastTime||0, unread:c.unread||false, orderId:c.orderId||''};
+      }).sort(function(a,b){return b.lastTime-a.lastTime;});
+    }).catch(function(){return [];});
+  },
+  getChatMessages: function(email) {
+    var key = email.toLowerCase().replace(/[.@]/g, function(c){ return c==='.'?'_dot_':'_at_'; });
+    return fbFetch('/chats/'+key+'/messages.json','GET').then(function(data){
+      if(!data||typeof data!=='object') return [];
+      return Object.keys(data).map(function(k){ return Object.assign({},data[k],{_key:k}); })
+        .sort(function(a,b){return a.time-b.time;});
+    }).catch(function(){return [];});
+  },
+  sendChatMessage: function(email, name, orderId, msg, fromSeller) {
+    var key = email.toLowerCase().replace(/[.@]/g, function(c){ return c==='.'?'_dot_':'_at_'; });
+    var msgObj = {text:msg, fromSeller:fromSeller, time:Date.now(), timeStr:new Date().toLocaleTimeString('ms-MY',{hour:'2-digit',minute:'2-digit'})};
+    return fbFetch('/chats/'+key+'/messages.json','POST',msgObj).then(function(){
+      return fbFetch('/chats/'+key+'.json','PATCH',{name:name,email:email,orderId:orderId,lastMsg:msg,lastTime:Date.now(),unread:!fromSeller});
+    }).catch(function(e){console.error('sendChat',e);});
+  },
+  markChatRead: function(email) {
+    var key = email.toLowerCase().replace(/[.@]/g, function(c){ return c==='.'?'_dot_':'_at_'; });
+    return fbFetch('/chats/'+key+'.json','PATCH',{unread:false}).catch(function(){});
+  },
+  initChat: function(email, name, orderId) {
+    var key = email.toLowerCase().replace(/[.@]/g, function(c){ return c==='.'?'_dot_':'_at_'; });
+    return fbFetch('/chats/'+key+'.json','GET').then(function(data){
+      if(!data||!data.email){
+        return fbFetch('/chats/'+key+'.json','PUT',{name:name,email:email,orderId:orderId,lastMsg:'',lastTime:Date.now(),unread:false});
+      }
+    }).catch(function(){});
   }
 };
 window._fbReady = true;
@@ -306,6 +342,12 @@ body{background:var(--bg);color:var(--txt);font-family:Inter,sans-serif;font-siz
 /* BEYONDATC */
 .chip[data-cat=beyondatc]:hover{color:#c4b5fd}
 .chip[data-cat=beyondatc].on{background:rgba(109,40,217,.18);border-color:rgba(196,181,253,.4);color:#c4b5fd;box-shadow:0 2px 12px rgba(109,40,217,.2);transform:translateY(-1px)}
+/* IFLY */
+.chip[data-cat=ifly]:hover{color:#7dd3fc}
+.chip[data-cat=ifly].on{background:rgba(30,144,255,.15);border-color:rgba(125,211,252,.4);color:#93c5fd;box-shadow:0 2px 12px rgba(30,144,255,.2);transform:translateY(-1px)}
+/* FSREALISTIC */
+.chip[data-cat=fsrealistic]:hover{color:#d1d5db}
+.chip[data-cat=fsrealistic].on{background:rgba(120,120,140,.18);border-color:rgba(180,180,200,.4);color:#d1d5db;box-shadow:0 2px 12px rgba(120,120,140,.18);transform:translateY(-1px)}
 
 .fbar-div{width:1px;background:var(--bord);height:26px;flex-shrink:0;margin:0 8px}
 .fbar-right{display:flex;align-items:center;gap:8px;flex-shrink:0;margin-left:auto}
@@ -313,43 +355,166 @@ body{background:var(--bg);color:var(--txt);font-family:Inter,sans-serif;font-siz
 .sort-sel:hover{border-color:var(--bord2);color:var(--txt)}
 
 .shop{padding:26px 28px 48px}
-.shop-hd{display:flex;align-items:baseline;gap:10px;margin-bottom:18px}
+.shop-hd{display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap}
 .shop-title{font-size:15px;font-weight:600;color:var(--txt)}
 .shop-count{font-size:12px;color:var(--sub)}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px}
+.shop-hd-right{margin-left:auto;display:flex;gap:6px;align-items:center}
 
-.card{background:var(--surf);border:1px solid var(--bord);border-radius:16px;overflow:hidden;transition:border-color .3s,transform .32s cubic-bezier(.22,1,.36,1),box-shadow .32s;cursor:pointer;position:relative}
-.card::after{content:'';position:absolute;inset:0;opacity:0;transition:opacity .3s;pointer-events:none;border-radius:16px;background:radial-gradient(600px circle at var(--mx,50%) var(--my,50%),rgba(255,255,255,.04),transparent 40%)}
+/* View Toggle */
+.view-toggle{display:flex;gap:3px;background:var(--surf2);border:1px solid var(--bord);border-radius:8px;padding:3px}
+.view-btn{background:none;border:none;color:var(--muted);width:28px;height:28px;border-radius:5px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .15s}
+.view-btn.on{background:var(--surf3);color:var(--txt)}
+
+/* Grid Layout */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px;transition:all .3s}
+.grid.list-view{grid-template-columns:1fr;gap:12px}
+
+/* ===== CARD — PREMIUM REDESIGN ===== */
+.card{
+  background:var(--surf);
+  border:1px solid var(--bord);
+  border-radius:18px;
+  overflow:hidden;
+  transition:border-color .3s,transform .35s cubic-bezier(.22,1,.36,1),box-shadow .35s,background .3s;
+  cursor:pointer;
+  position:relative;
+  isolation:isolate;
+}
+/* Spotlight radial follow */
+.card::before{
+  content:'';position:absolute;inset:0;opacity:0;transition:opacity .4s;pointer-events:none;border-radius:18px;
+  background:radial-gradient(500px circle at var(--mx,50%) var(--my,50%),rgba(255,255,255,.045),transparent 38%);
+  z-index:1;
+}
+.card:hover::before{opacity:1}
+/* Animated gradient border on hover */
+.card::after{
+  content:'';position:absolute;inset:-1px;border-radius:19px;opacity:0;
+  transition:opacity .35s;pointer-events:none;
+  background:conic-gradient(from 0deg,transparent 0%,rgba(91,110,245,.4) 20%,transparent 40%,rgba(240,160,32,.2) 60%,transparent 80%);
+  z-index:-1;mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);mask-composite:exclude;
+}
 .card:hover::after{opacity:1}
-.card:hover{transform:translateY(-8px) scale(1.013);box-shadow:0 24px 56px rgba(0,0,0,.6)}
-.card.cat-fenix:hover{border-color:rgba(192,90,255,.7);box-shadow:0 24px 56px rgba(192,60,220,.25),0 0 0 1px rgba(192,90,255,.15);background:linear-gradient(160deg,#0a0612 60%,#140820)}
-.card.cat-pmdg:hover{border-color:rgba(37,99,235,.75);box-shadow:0 24px 56px rgba(37,99,235,.25),0 0 0 1px rgba(37,99,235,.15);background:linear-gradient(160deg,#060b1a 60%,#0a1530)}
-.card.cat-gsx:hover,.card.cat-GSX:hover{border-color:rgba(240,120,0,.7);box-shadow:0 24px 56px rgba(240,120,0,.2),0 0 0 1px rgba(240,120,0,.12);background:linear-gradient(160deg,#0f0900 60%,#1c1200)}
-.card.cat-navigraph:hover{border-color:rgba(29,78,216,.7);box-shadow:0 24px 56px rgba(29,78,216,.2),0 0 0 1px rgba(29,78,216,.12);background:linear-gradient(160deg,#04060f 60%,#080d20)}
-.card.cat-inibuilds:hover{border-color:rgba(220,38,38,.65);box-shadow:0 24px 56px rgba(220,38,38,.2),0 0 0 1px rgba(220,38,38,.12);background:linear-gradient(160deg,#0f0404 60%,#1c0808)}
-.card.cat-beyondatc:hover{border-color:rgba(109,40,217,.7);box-shadow:0 24px 56px rgba(109,40,217,.25),0 0 0 1px rgba(109,40,217,.15);background:linear-gradient(160deg,#06040f 60%,#0d0820)}
+.card:hover{transform:translateY(-6px) scale(1.012);box-shadow:0 20px 50px rgba(0,0,0,.55)}
+/* Category hover colours */
+.card.cat-fenix:hover{border-color:rgba(192,90,255,.5);box-shadow:0 20px 50px rgba(192,60,220,.22);background:linear-gradient(160deg,#090511 55%,#120720)}
+.card.cat-pmdg:hover{border-color:rgba(37,99,235,.55);box-shadow:0 20px 50px rgba(37,99,235,.2);background:linear-gradient(160deg,#050a18 55%,#091428)}
+.card.cat-gsx:hover,.card.cat-GSX:hover{border-color:rgba(240,120,0,.5);box-shadow:0 20px 50px rgba(240,120,0,.16);background:linear-gradient(160deg,#0d0800 55%,#1a1000)}
+.card.cat-navigraph:hover{border-color:rgba(29,78,216,.5);box-shadow:0 20px 50px rgba(29,78,216,.16);background:linear-gradient(160deg,#030509 55%,#060c1c)}
+.card.cat-inibuilds:hover{border-color:rgba(220,38,38,.45);box-shadow:0 20px 50px rgba(220,38,38,.16);background:linear-gradient(160deg,#0e0303 55%,#1a0606)}
+.card.cat-beyondatc:hover{border-color:rgba(109,40,217,.5);box-shadow:0 20px 50px rgba(109,40,217,.2);background:linear-gradient(160deg,#050311 55%,#0a061c)}
+.card.cat-fs2crew:hover{border-color:rgba(234,179,8,.5);box-shadow:0 20px 50px rgba(234,179,8,.16);background:linear-gradient(160deg,#0d0a00 55%,#1a1400)}
+.card.cat-ifly:hover{border-color:rgba(30,144,255,.5);box-shadow:0 20px 50px rgba(30,144,255,.2);background:linear-gradient(160deg,#020a18 55%,#041428)}
+.card.cat-fsrealistic:hover{border-color:rgba(120,120,140,.5);box-shadow:0 20px 50px rgba(120,120,140,.18);background:linear-gradient(160deg,#0e0e10 55%,#1a1a1e)}
+
+/* Soon overlay */
+.card.soon-card{opacity:.75}
+.card.soon-card:hover{opacity:.95}
+.soon-overlay{position:absolute;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.soon-pill{background:rgba(12,14,20,.85);backdrop-filter:blur(12px);border:1px solid var(--bord2);color:var(--muted);font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:6px 14px;border-radius:20px;display:flex;align-items:center;gap:5px}
+
+/* Thumb */
 .card-thumb{width:100%;aspect-ratio:16/9;position:relative;overflow:hidden;background:#0a0c12;display:flex;align-items:center;justify-content:center;font-size:32px}
-.card-thumb img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .38s ease}
-.card:hover .card-thumb img{transform:scale(1.09)}
+.card-thumb img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .42s ease}
+.card:hover .card-thumb img{transform:scale(1.07)}
 .ct-fenix{background:linear-gradient(135deg,#071828,#0d2540)}
 .ct-pmdg{background:linear-gradient(135deg,#060e1e,#0a1630)}
 .ct-gsx{background:linear-gradient(135deg,#0f0e04,#1a1a06)}
 .ct-fs2{background:linear-gradient(135deg,#1a1400,#2e2200)}
 .ct-nav{background:linear-gradient(135deg,#06080f,#0e1220)}
-.card.cat-fs2crew:hover{border-color:rgba(234,179,8,.7);box-shadow:0 24px 56px rgba(234,179,8,.2),0 0 0 1px rgba(234,179,8,.12);background:linear-gradient(160deg,#0f0c00 60%,#1c1600)}
-.card-badge{position:absolute;top:10px;left:10px;font-size:10px;font-weight:700;padding:3px 9px;border-radius:5px;text-transform:uppercase;letter-spacing:.3px;z-index:2}
-.b-hot{background:rgba(239,68,68,.22);color:#f87171;border:1px solid rgba(239,68,68,.35)}
-.b-new{background:rgba(34,197,94,.15);color:#4ade80;border:1px solid rgba(34,197,94,.28)}
-.card-body{padding:20px}
-.card-dev{font-size:10px;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;font-weight:600}
-.card-name{font-size:17px;font-weight:700;color:#fff;line-height:1.35;margin-bottom:10px;min-height:44px}
-.card-tags{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:14px}
-.tag{background:var(--surf2);color:var(--muted);border:1px solid var(--bord);font-size:10px;padding:3px 8px;border-radius:4px}
-.card-foot{display:flex;align-items:center;justify-content:space-between}
-.price{font-size:22px;font-weight:800;color:#fff;letter-spacing:-.4px}
-.add-btn{background:var(--acc);color:#fff;border:none;padding:9px 16px;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s}
-.add-btn:hover{opacity:.85}
+.ct-ifly{background:linear-gradient(135deg,#020c1e,#041e3a)}
+.ct-fsr{background:linear-gradient(135deg,#0e0e10,#1a1a20)}
+
+/* Badge */
+.card-badge{position:absolute;top:10px;left:10px;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:.4px;z-index:2;backdrop-filter:blur(6px)}
+.b-hot{background:rgba(239,68,68,.28);color:#fca5a5;border:1px solid rgba(239,68,68,.4)}
+.b-new{background:rgba(34,197,94,.2);color:#86efac;border:1px solid rgba(34,197,94,.35)}
+
+/* Quick Peek button (shows on thumb hover) */
+.card-peek-btn{
+  position:absolute;bottom:10px;left:50%;transform:translateX(-50%) translateY(8px);
+  background:rgba(12,14,20,.85);backdrop-filter:blur(12px);
+  border:1px solid var(--bord2);color:var(--txt);
+  padding:6px 16px;border-radius:20px;font-size:11px;font-weight:600;
+  cursor:pointer;font-family:inherit;white-space:nowrap;
+  display:flex;align-items:center;gap:5px;
+  opacity:0;transition:opacity .25s,transform .25s;z-index:3;
+}
+.card:hover .card-peek-btn{opacity:1;transform:translateX(-50%) translateY(0)}
+.card-peek-btn:hover{background:rgba(91,110,245,.3);border-color:var(--acc);color:#fff}
+
+/* Card Body */
+.card-body{padding:18px 20px 20px;position:relative;z-index:2}
+.card-top-row{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:4px}
+.card-dev{font-size:10px;color:var(--sub);text-transform:uppercase;letter-spacing:.6px;font-weight:700}
+.card-cat-chip{font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;text-transform:uppercase;letter-spacing:.3px;flex-shrink:0}
+.chip-fenix{background:rgba(192,60,220,.15);color:#e0aaff;border:1px solid rgba(192,60,220,.3)}
+.chip-pmdg{background:rgba(37,99,235,.15);color:#93c5fd;border:1px solid rgba(37,99,235,.3)}
+.chip-gsx{background:rgba(240,120,0,.15);color:#fdba74;border:1px solid rgba(240,120,0,.3)}
+.chip-navigraph{background:rgba(29,78,216,.15);color:#7dd3fc;border:1px solid rgba(29,78,216,.3)}
+.chip-inibuilds{background:rgba(220,38,38,.15);color:#fca5a5;border:1px solid rgba(220,38,38,.3)}
+.chip-beyondatc{background:rgba(109,40,217,.18);color:#c4b5fd;border:1px solid rgba(109,40,217,.3)}
+.chip-fs2crew{background:rgba(234,179,8,.15);color:#fde68a;border:1px solid rgba(234,179,8,.3)}
+.chip-ifly{background:rgba(30,144,255,.15);color:#93c5fd;border:1px solid rgba(30,144,255,.3)}
+.chip-fsrealistic{background:rgba(120,120,140,.18);color:#d1d5db;border:1px solid rgba(120,120,140,.3)}
+
+.card-name{font-size:16px;font-weight:700;color:#fff;line-height:1.3;margin-bottom:8px;min-height:42px}
+.card-tags{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px}
+.tag{background:var(--surf2);color:var(--muted);border:1px solid var(--bord);font-size:10px;padding:3px 8px;border-radius:4px;transition:border-color .15s}
+.card:hover .tag{border-color:var(--bord2)}
+
+/* Stars mini row on card */
+.card-stars-row{display:flex;align-items:center;gap:5px;margin-bottom:10px;min-height:16px}
+.card-stars{font-size:11px;color:var(--gold);letter-spacing:.5px}
+.card-stars-count{font-size:10px;color:var(--sub)}
+
+/* Card Footer */
+.card-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:4px}
+.price-wrap{display:flex;flex-direction:column;gap:1px}
+.price{font-size:22px;font-weight:800;color:#fff;letter-spacing:-.5px;line-height:1}
+.price-label{font-size:9px;color:var(--sub);text-transform:uppercase;letter-spacing:.4px;font-weight:600}
+.card-actions{display:flex;gap:6px;align-items:center}
+.add-btn{background:var(--acc);color:#fff;border:none;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;display:flex;align-items:center;gap:5px;letter-spacing:.2px}
+.add-btn:hover{opacity:.88;transform:translateY(-1px)}
 .add-btn.added{background:var(--grn)}
+.quick-cart-btn{background:var(--surf2);border:1px solid var(--bord);color:var(--muted);width:34px;height:34px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .15s;flex-shrink:0}
+.quick-cart-btn:hover{border-color:var(--acc);color:var(--acc)}
+
+/* ===== LIST VIEW CARD ===== */
+.grid.list-view .card{border-radius:14px}
+.grid.list-view .card-thumb{aspect-ratio:unset;width:130px;height:100%;min-height:110px;flex-shrink:0;border-radius:0}
+.grid.list-view .card{display:flex;flex-direction:row;overflow:hidden}
+.grid.list-view .card-body{flex:1;padding:16px 18px;display:flex;flex-direction:column;justify-content:space-between}
+.grid.list-view .card-name{font-size:15px;min-height:unset;margin-bottom:5px}
+.grid.list-view .card-tags{margin-bottom:0}
+.grid.list-view .stock-counter{display:none}
+
+/* Shimmer skeleton */
+.card-skeleton{background:var(--surf);border:1px solid var(--bord);border-radius:18px;overflow:hidden}
+.skel-thumb{width:100%;aspect-ratio:16/9;background:linear-gradient(90deg,var(--surf2) 25%,var(--surf3) 50%,var(--surf2) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite}
+.skel-body{padding:18px 20px}
+.skel-line{height:10px;border-radius:5px;background:linear-gradient(90deg,var(--surf2) 25%,var(--surf3) 50%,var(--surf2) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;margin-bottom:10px}
+.skel-line.sm{width:55%;height:8px}
+.skel-line.lg{width:80%}
+.skel-line.short{width:40%}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* ===== QUICK PEEK MODAL ===== */
+.peek-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:700;backdrop-filter:blur(10px);align-items:center;justify-content:center;padding:20px}
+.peek-ov.open{display:flex}
+.peek-box{background:var(--surf);border:1px solid var(--bord);border-radius:20px;width:100%;max-width:480px;max-height:88vh;overflow-y:auto;animation:peekIn .3s cubic-bezier(.22,1,.36,1);position:relative}
+@keyframes peekIn{from{transform:scale(.92) translateY(16px);opacity:0}to{transform:scale(1) translateY(0);opacity:1}}
+.peek-thumb{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:20px 20px 0 0;display:block}
+.peek-body{padding:22px}
+.peek-dev{font-size:11px;color:var(--acc);text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:6px}
+.peek-name{font-size:20px;font-weight:800;color:#fff;line-height:1.25;margin-bottom:8px}
+.peek-desc{font-size:13px;color:var(--muted);line-height:1.65;margin-bottom:16px;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.peek-tags{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:16px}
+.peek-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-top:16px;border-top:1px solid var(--bord)}
+.peek-price{font-size:26px;font-weight:800;color:var(--gold);letter-spacing:-.5px}
+.peek-actions{display:flex;gap:8px}
+.peek-close{position:absolute;top:12px;right:12px;background:rgba(12,14,20,.8);backdrop-filter:blur(8px);border:1px solid var(--bord);color:var(--txt);width:32px;height:32px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .15s;z-index:2}
+.peek-close:hover{background:var(--redd);color:var(--red);border-color:var(--red)}
 
 /* STYLING PREMIUM UNTUK HALAMAN PENERANGAN ITEM */
 .desc-wrap{max-width:900px;margin:0 auto;padding:40px 28px 80px}
@@ -414,8 +579,29 @@ body{background:var(--bg);color:var(--txt);font-family:Inter,sans-serif;font-siz
 .bundle-btn{background:var(--gold);color:#000;border:none;padding:10px 20px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;transition:opacity .15s}
 .bundle-btn:hover{opacity:.88}
 
-footer{background:var(--surf);border-top:1px solid var(--bord);color:var(--sub);font-size:12px;padding:20px 28px;display:flex;align-items:center;justify-content:space-between}
+footer{background:var(--surf);border-top:1px solid var(--bord);color:var(--sub);font-size:12px;padding:0}
 footer a{color:var(--muted);text-decoration:none}
+.footer-inner{max-width:1100px;margin:0 auto;padding:28px 28px 22px;display:flex;flex-direction:column;gap:16px}
+.footer-top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px}
+.footer-brand{display:flex;align-items:center;gap:10px}
+.footer-brand-logo{width:34px;height:34px;border-radius:9px;overflow:hidden;flex-shrink:0;border:1px solid var(--bord)}
+.footer-brand-logo img{width:100%;height:100%;object-fit:cover}
+.footer-brand-name{font-size:14px;font-weight:700;color:var(--txt);letter-spacing:-.3px}
+.footer-brand-name span{color:var(--acc)}
+.footer-email a{color:var(--muted);font-size:12px;transition:color .15s}
+.footer-email a:hover{color:var(--acch)}
+.footer-divider{height:1px;background:var(--bord)}
+.footer-bottom{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.footer-copy{font-size:11px;color:var(--sub)}
+.footer-pay-label{font-size:10px;color:var(--sub);text-transform:uppercase;letter-spacing:.6px;font-weight:600;margin-right:4px}
+.footer-tng-badge{display:inline-flex;align-items:center;gap:8px;background:var(--surf2);border:1px solid var(--bord);border-radius:8px;padding:7px 13px;transition:border-color .15s}
+.footer-tng-badge:hover{border-color:var(--bord2)}
+.footer-tng-icon{width:26px;height:26px;border-radius:5px;overflow:hidden;flex-shrink:0}
+.footer-tng-icon img{width:100%;height:100%;object-fit:cover}
+.footer-tng-label{display:flex;flex-direction:column}
+.footer-tng-name{font-size:11px;font-weight:700;color:var(--txt)}
+.footer-tng-sub{font-size:9px;color:var(--muted);margin-top:1px}
+@media(max-width:520px){.footer-top,.footer-bottom{flex-direction:column;align-items:flex-start}}
 
 .page{display:none}
 .page.active{display:block}
@@ -563,21 +749,224 @@ footer a{color:var(--muted);text-decoration:none}
 .zoom-ov.open{display:flex}
 .zoom-ov img{max-width:90vw;max-height:90vh;border-radius:8px}
 
+/* ===== PROGRESS INDICATOR ===== */
+.checkout-progress{display:flex;align-items:center;justify-content:center;padding:20px 28px 0;gap:0;margin-bottom:4px;position:relative}
+.prog-step{display:flex;flex-direction:column;align-items:center;gap:5px;position:relative;z-index:1;flex:1;max-width:90px}
+.prog-dot{width:32px;height:32px;border-radius:50%;border:2px solid var(--bord);background:var(--surf2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--sub);transition:all .35s cubic-bezier(.22,1,.36,1);position:relative}
+.prog-step.done .prog-dot{background:var(--grn);border-color:var(--grn);color:#fff;box-shadow:0 0 12px rgba(34,197,94,.35)}
+.prog-step.active .prog-dot{background:var(--acc);border-color:var(--acch);color:#fff;box-shadow:0 0 16px rgba(91,110,245,.4)}
+.prog-step.done .prog-dot::after{content:'✓';font-size:13px}
+.prog-label{font-size:9px;font-weight:600;color:var(--sub);text-transform:uppercase;letter-spacing:.4px;text-align:center;line-height:1.2;transition:color .3s}
+.prog-step.active .prog-label{color:var(--acch)}
+.prog-step.done .prog-label{color:var(--grn)}
+.prog-line{flex:1;height:2px;background:var(--bord);transition:background .4s;margin:0 -2px;position:relative;top:-14px;z-index:0;max-width:60px}
+.prog-line.done{background:var(--grn)}
+.prog-line.active{background:linear-gradient(90deg,var(--grn),var(--acc))}
+
+/* ===== REVENUE CHART ===== */
+.revenue-section{background:var(--surf);border:1px solid var(--bord);border-radius:14px;padding:22px;margin-bottom:22px}
+.rev-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px}
+.rev-title{font-size:14px;font-weight:700;color:#fff;display:flex;align-items:center;gap:8px}
+.rev-tabs{display:flex;gap:4px;background:var(--surf2);border-radius:8px;padding:3px}
+.rev-tab{background:none;border:none;color:var(--muted);font-size:11px;font-weight:600;padding:5px 12px;border-radius:5px;cursor:pointer;font-family:inherit;transition:all .15s}
+.rev-tab.on{background:var(--surf3);color:var(--txt)}
+.chart-wrap{position:relative;height:180px;width:100%}
+.chart-canvas{width:100%;height:100%}
+.chart-tooltip{position:absolute;background:var(--surf2);border:1px solid var(--bord);border-radius:8px;padding:7px 11px;font-size:11px;color:var(--txt);pointer-events:none;display:none;z-index:10;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.4)}
+.chart-empty{display:flex;align-items:center;justify-content:center;height:100%;color:var(--sub);font-size:12px;flex-direction:column;gap:6px}
+
+/* ===== FLOATING CHAT WIDGET ===== */
+/* Transparent overlay — blocks nothing, just catches outside clicks */
+.fchat-ov{display:none;position:fixed;inset:0;z-index:850;pointer-events:none}
+.fchat-ov.open{display:block}
+
+/* The floating card */
+.fchat{position:fixed;bottom:24px;right:24px;width:360px;height:520px;background:var(--surf);border:1px solid var(--bord);border-radius:18px;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,.55),0 8px 24px rgba(0,0,0,.3);transform:translateY(20px) scale(.96);opacity:0;transition:transform .3s cubic-bezier(.22,1,.36,1),opacity .3s ease;pointer-events:none;overflow:hidden;z-index:851}
+.fchat-ov.open .fchat{transform:translateY(0) scale(1);opacity:1;pointer-events:all}
+
+/* Header */
+.fchat-hd{padding:14px 16px;background:linear-gradient(135deg,var(--acc),var(--acch));display:flex;align-items:center;gap:10px;flex-shrink:0;border-radius:0}
+.fchat-hd-left{display:flex;align-items:center;gap:9px;flex:1;min-width:0}
+.fchat-hd-icon{width:28px;height:28px;border-radius:8px;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0}
+.fchat-hd-title{font-size:13px;font-weight:700;color:#fff}
+.fchat-close{background:rgba(255,255,255,.18);border:none;color:#fff;width:26px;height:26px;border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;transition:background .15s;flex-shrink:0}
+.fchat-close:hover{background:rgba(255,255,255,.3)}
+.chat-panel-back{background:rgba(255,255,255,.18);border:none;color:#fff;width:26px;height:26px;border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:background .15s;flex-shrink:0}
+.chat-panel-back:hover{background:rgba(255,255,255,.3)}
+
+/* Inbox list */
+.chat-inbox{flex:1;overflow-y:auto;padding:10px}
+.chat-inbox::-webkit-scrollbar{width:3px}
+.chat-inbox::-webkit-scrollbar-thumb{background:var(--bord2);border-radius:2px}
+.chat-inbox-empty{padding:44px 16px;text-align:center;color:var(--sub);font-size:12px}
+.chat-inbox-item{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:10px;cursor:pointer;transition:background .15s;border:1px solid transparent;margin-bottom:4px}
+.chat-inbox-item:hover{background:var(--surf2);border-color:var(--bord)}
+.chat-inbox-item.unread{background:var(--accd);border-color:rgba(91,110,245,.2)}
+.chat-inbox-avatar{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--acc),var(--acch));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0}
+.chat-inbox-info{flex:1;min-width:0}
+.chat-inbox-name{font-size:13px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chat-inbox-preview{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.chat-inbox-meta{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
+.chat-inbox-time{font-size:10px;color:var(--sub)}
+.chat-unread-dot{width:8px;height:8px;background:#ef4444;border-radius:50%}
+
+/* Chat window */
+.chat-window{display:none;flex-direction:column;flex:1;min-height:0}
+.chat-window.open{display:flex}
+.chat-messages{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
+.chat-messages::-webkit-scrollbar{width:3px}
+.chat-messages::-webkit-scrollbar-thumb{background:var(--bord2);border-radius:2px}
+.chat-msg{max-width:80%;padding:9px 13px;border-radius:12px;font-size:13px;line-height:1.5;word-break:break-word}
+.chat-msg.from-seller{background:var(--acc);color:#fff;border-radius:12px 12px 4px 12px;align-self:flex-end}
+.chat-msg.from-buyer{background:var(--surf2);color:var(--txt);border:1px solid var(--bord);border-radius:12px 12px 12px 4px;align-self:flex-start}
+.chat-msg-time{font-size:9px;opacity:.65;margin-top:3px}
+.chat-input-area{padding:12px 14px;border-top:1px solid var(--bord);display:flex;gap:8px;flex-shrink:0;background:var(--surf)}
+.chat-input{flex:1;padding:9px 13px;background:var(--surf2);border:1px solid var(--bord);border-radius:10px;font-size:13px;font-family:inherit;color:var(--txt);outline:none;transition:border-color .15s;resize:none;max-height:100px;line-height:1.5}
+.chat-input:focus{border-color:var(--acc)}
+.chat-send-btn{background:linear-gradient(135deg,var(--acc),var(--acch));border:none;color:#fff;width:36px;height:36px;border-radius:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:opacity .15s;flex-shrink:0;align-self:flex-end;box-shadow:0 2px 8px rgba(91,110,245,.4)}
+.chat-send-btn:hover{opacity:.85}
+.chat-buyer-info{padding:8px 14px;background:var(--surf2);border-bottom:1px solid var(--bord);font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px;flex-shrink:0}
+
+/* Chat button on order card */
+.a-chat{background:rgba(91,110,245,.15);color:var(--acch);border-color:rgba(91,110,245,.3)}
+.a-chat:hover{background:rgba(91,110,245,.25)}
+
+/* Mobile — full screen chat */
+@media(max-width:600px){
+  .fchat{bottom:0;right:0;width:100vw;height:100dvh;border-radius:0;border:none}
+}
+
+/* ===== CHAT BELL IN ADMIN NAV ===== */
+.chat-bell-btn{background:none;border:1px solid var(--bord);color:var(--muted);width:36px;height:36px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all .2s;position:relative;margin-left:auto;margin-right:10px}
+.chat-bell-btn:hover{border-color:var(--acc);color:var(--acch);background:var(--accd)}
+.chat-bell-dot{position:absolute;top:-4px;right:-4px;width:10px;height:10px;background:#ef4444;border-radius:50%;border:2px solid var(--surf);display:none;animation:bellPulse 2s infinite}
+.chat-bell-dot.show{display:block}
+@keyframes bellPulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.5)}60%{box-shadow:0 0 0 5px rgba(239,68,68,0)}}
+
 .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--surf2);border:1px solid var(--bord);color:var(--txt);padding:10px 18px;border-radius:8px;font-size:13px;display:flex;align-items:center;gap:8px;opacity:0;transition:all .25s;pointer-events:none;z-index:400;white-space:nowrap;font-weight:500;box-shadow:0 8px 24px rgba(0,0,0,.5)}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
-@media(max-width:768px){
-  .nav{padding:0 14px}.nav-links{display:none}
-  .hero{padding:50px 18px 42px}.hero h1{font-size:28px}
-  .fbar{padding:0 14px}.shop{padding:18px 14px 48px}
-  .grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
-  .bundle{flex-direction:column;margin:0 14px 28px;text-align:center}
-  .co-wrap{padding:22px 14px 80px}.dash-body{padding:18px 14px}
-  footer{flex-direction:column;gap:6px;text-align:center}
-  .ocard-body{grid-template-columns:1fr}
+/* ===== RESPONSIVE — TABLET (≤900px) ===== */
+@media(max-width:900px){
   .desc-grid{grid-template-columns:1fr;gap:26px}
-  .desc-title{font-size:26px}
-  .desc-feats{grid-template-columns:1fr}
+  .desc-title{font-size:28px}
+  .desc-feats{grid-template-columns:repeat(3,1fr)}
+  .review-grid{grid-template-columns:1fr}
+  .chat-panel{width:320px}
+}
+
+/* ===== RESPONSIVE — MOBILE (≤768px) ===== */
+@media(max-width:768px){
+  /* Nav */
+  .nav{padding:0 14px;height:52px}
+  .nav-links{display:none}
+  .lang-btn{padding:4px 9px;font-size:11px}
+  .staff-btn{padding:4px 10px;font-size:11px}
+  .cart-btn{padding:5px 10px;font-size:12px}
+  .wish-nav-btn{padding:5px 9px}
+  .navLoginBtn{padding:6px 10px;font-size:11px}
+
+  /* Hero */
+  .hero{padding:48px 18px 40px}
+  .hero h1{font-size:26px;letter-spacing:-.8px}
+  .hero-sub{font-size:13px}
+  .hero-stats{gap:16px}
+  .stat-n{font-size:20px}
+
+  /* Filter bar */
+  .fbar{padding:10px 14px;gap:6px;flex-wrap:wrap}
+  .fbar-right{width:100%;justify-content:space-between}
+  .search-input{width:100px}
+  .search-input:focus{width:130px}
+  .chip{padding:5px 11px;font-size:11px}
+
+  /* Shop grid */
+  .shop{padding:16px 14px 48px}
+  .grid{grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:10px}
+  .card-name{font-size:13px}
+  .price{font-size:14px}
+
+  /* Bundle */
+  .bundle{flex-direction:column;margin:0 14px 28px;text-align:center;gap:12px}
+
+  /* Checkout */
+  .co-wrap{padding:20px 14px 80px}
+  .checkout-progress{padding:16px 10px 0;gap:0}
+  .prog-dot{width:26px;height:26px;font-size:10px}
+  .prog-label{font-size:8px}
+  .prog-line{max-width:40px}
+
+  /* Dashboard */
+  .dash-nav{padding:0 14px;gap:10px}
+  .dash-logo{font-size:13px}
+  .dash-body{padding:16px 14px}
+  .d-stats{grid-template-columns:repeat(2,1fr);gap:8px}
+  .ocard-body{grid-template-columns:1fr}
+  .o-actions{flex-wrap:wrap}
+  .abtn{font-size:11px;padding:5px 10px}
+
+  /* Description page */
+  .desc-wrap{padding:24px 16px 60px}
+  .desc-grid{grid-template-columns:1fr;gap:20px}
+  .desc-title{font-size:24px}
+  .desc-feats{grid-template-columns:repeat(3,1fr);gap:7px}
+  .desc-actions{flex-direction:column}
+
+  /* Review */
+  .review-grid{grid-template-columns:1fr}
+  .review-section{margin-top:32px;padding-top:28px}
+
+  /* Cart panel */
+  .cpanel{width:100vw}
+
+  /* Chat panel */
+  .chat-panel{width:100vw;border-left:none}
+
+  /* Auth modal */
+  .auth-box{padding:28px 20px;border-radius:14px}
+
+  /* Compat table */
+  .compat-section{padding:0 14px 48px}
+  .compat-hd{flex-direction:column;align-items:flex-start;gap:10px;margin-bottom:18px}
+  .compat-table thead th,.compat-table tbody td{padding:10px 12px;font-size:12px}
+
+  /* FAQ */
+  .faq-section{padding:0 14px 40px}
+
+  /* Settings panel */
+  .settings-box{border-radius:16px 16px 0 0}
+
+  /* Footer */
+  .footer-top{flex-direction:column;align-items:flex-start}
+  .footer-bottom{flex-direction:column;align-items:flex-start}
+
+  /* Peek modal */
+  .peek-box{max-width:96vw;margin:0 8px}
+
+  /* History / Wishlist */
+  .hist-wrap{padding:24px 14px 60px}
+  .wish-wrap{padding:24px 14px 60px}
+  .wish-grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}
+
+  /* Discord FAB */
+  .discord-fab{bottom:18px;right:14px;padding:11px;border-radius:50%}
+  .discord-fab-label{display:none}
+}
+
+/* ===== RESPONSIVE — SMALL MOBILE (≤420px) ===== */
+@media(max-width:420px){
+  .hero h1{font-size:22px}
+  .grid{grid-template-columns:1fr 1fr;gap:8px}
+  .card-name{font-size:12px}
+  .desc-title{font-size:20px}
+  .desc-feats{grid-template-columns:repeat(3,1fr)}
+  .d-stats{grid-template-columns:repeat(2,1fr)}
+  .auth-box{padding:24px 16px}
+  .peek-box{border-radius:12px}
+  .prog-dot{width:22px;height:22px;font-size:9px}
+  .prog-label{font-size:7px;letter-spacing:0}
+  .prog-line{max-width:28px}
+  .staff-btn{display:none}
 }
 
 /* ===== INTRO SCREEN ===== */
@@ -1102,6 +1491,9 @@ footer a{color:var(--muted);text-decoration:none}
     <button class="chip" data-cat="navigraph" onclick="doFilter('navigraph',this)">Navigraph</button>
     <button class="chip" data-cat="inibuilds" onclick="doFilter('inibuilds',this)">iniBuilds</button>
     <button class="chip" data-cat="beyondatc" onclick="doFilter('beyondatc',this)">BeyondATC</button>
+    <button class="chip" data-cat="fs2crew" onclick="doFilter('fs2crew',this)">FS2Crew</button>
+    <button class="chip" data-cat="ifly" onclick="doFilter('ifly',this)">iFly</button>
+    <button class="chip" data-cat="fsrealistic" onclick="doFilter('fsrealistic',this)">FSRealistic</button>
     <div class="fbar-div"></div>
     <div class="fbar-right">
       <div class="search-wrap">
@@ -1122,6 +1514,12 @@ footer a{color:var(--muted);text-decoration:none}
     <div class="shop-hd">
       <span class="shop-title" id="shopTitle">Semua Addons</span>
       <span class="shop-count" id="shopCount">5 produk</span>
+      <div class="shop-hd-right">
+        <div class="view-toggle">
+          <button class="view-btn on" id="viewGrid" onclick="setView('grid')" title="Grid View"><i class="ti ti-layout-grid"></i></button>
+          <button class="view-btn" id="viewList" onclick="setView('list')" title="List View"><i class="ti ti-list"></i></button>
+        </div>
+      </div>
     </div>
     <div class="grid" id="grid"></div>
   </div>
@@ -1270,8 +1668,32 @@ footer a{color:var(--muted);text-decoration:none}
   </div>
 
   <footer>
-    <div id="footerL">Adam's Store &copy; 2025 — MSFS Addons Malaysia</div>
-    <div><a href="mailto:admabah474@gmail.com">admabah474@gmail.com</a></div>
+    <div class="footer-inner">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <div class="footer-brand-logo"><img src="https://i.imgur.com/4gkm9dp.jpeg" alt="Adam's Store"></div>
+          <div>
+            <div class="footer-brand-name">Adam's_Store<span>.Co</span></div>
+            <div style="font-size:10px;color:var(--sub);margin-top:2px">MSFS Premium Addons Malaysia</div>
+          </div>
+        </div>
+        <div class="footer-email"><a href="mailto:admabah474@gmail.com"><i class="ti ti-mail" style="font-size:11px"></i> admabah474@gmail.com</a></div>
+      </div>
+      <div class="footer-divider"></div>
+      <div class="footer-bottom">
+        <div class="footer-copy" id="footerL">&copy; 2026 Adam's_Store.Co — Hak cipta terpelihara.</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="footer-pay-label">Bayaran Diterima</span>
+          <div class="footer-tng-badge">
+            <div class="footer-tng-icon"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/TnG_eWallet_logo.png/240px-TnG_eWallet_logo.png" alt="TNG eWallet" onerror="this.parentElement.innerHTML='<span style=\'font-size:16px\'>💙</span>'"></div>
+            <div class="footer-tng-label">
+              <div class="footer-tng-name">Touch 'n Go</div>
+              <div class="footer-tng-sub">eWallet</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </footer>
 </div>
 
@@ -1286,8 +1708,8 @@ footer a{color:var(--muted);text-decoration:none}
       <div class="review-section-title"><span>&#11088;</span> Rating &amp; Review</div>
       <div class="review-grid">
         <div class="review-form-box">
-          <h4>Tulis Review</h4>
-          <p>Kongsi pengalaman anda dengan addon ini</p>
+          <h4 id="reviewFormTitle">Tulis Review</h4>
+          <p id="reviewFormSub">Kongsi pengalaman anda dengan addon ini</p>
           <div class="star-input" id="starInput">
             <input type="radio" name="star" id="s5" value="5"><label for="s5">&#9733;</label>
             <input type="radio" name="star" id="s4" value="4"><label for="s4">&#9733;</label>
@@ -1297,7 +1719,7 @@ footer a{color:var(--muted);text-decoration:none}
           </div>
           <input class="review-name-input" id="reviewName" type="text" placeholder="Nama anda (contoh: Adam)">
           <textarea class="review-text-input" id="reviewText" placeholder="Tulis review anda di sini..."></textarea>
-          <button class="review-submit-btn" onclick="submitReview()"><i class="ti ti-send"></i> Hantar Review</button>
+          <button class="review-submit-btn" id="reviewSubmitBtn" onclick="submitReview()"><i class="ti ti-send"></i> Hantar Review</button>
         </div>
         <div class="review-right-box">
           <div class="review-summary" id="reviewAvg" style="display:none">
@@ -1317,6 +1739,34 @@ footer a{color:var(--muted);text-decoration:none}
 <!-- CHECKOUT -->
 <div class="page" id="pageCheckout">
   <div class="co-wrap">
+    <!-- PROGRESS INDICATOR -->
+    <div class="checkout-progress" id="checkoutProgress">
+      <div class="prog-step done" id="ps0">
+        <div class="prog-dot">1</div>
+        <div class="prog-label">Browse</div>
+      </div>
+      <div class="prog-line done" id="pl0"></div>
+      <div class="prog-step done" id="ps1">
+        <div class="prog-dot">2</div>
+        <div class="prog-label">Troli</div>
+      </div>
+      <div class="prog-line active" id="pl1"></div>
+      <div class="prog-step active" id="ps2">
+        <div class="prog-dot">3</div>
+        <div class="prog-label">Maklumat</div>
+      </div>
+      <div class="prog-line" id="pl2"></div>
+      <div class="prog-step" id="ps3">
+        <div class="prog-dot">4</div>
+        <div class="prog-label">Bayaran</div>
+      </div>
+      <div class="prog-line" id="pl3"></div>
+      <div class="prog-step" id="ps4">
+        <div class="prog-dot">5</div>
+        <div class="prog-label">Selesai</div>
+      </div>
+    </div>
+
     <button class="page-back" onclick="goShop()"><i class="ti ti-arrow-left" style="font-size:13px"></i> <span id="backLbl">Kembali ke kedai</span></button>
     <div class="co-title" id="coTitle">Pembayaran</div>
     <p class="co-sub" id="coSub">Lengkapkan maklumat, buat bayaran, kemudian muat naik bukti pembayaran anda.</p>
@@ -1452,12 +1902,33 @@ footer a{color:var(--muted);text-decoration:none}
 <div class="dash" id="pageDash">
   <div class="dash-nav">
     <div class="dash-logo"><div class="logo-mark">A</div>Adam's Store <span class="dash-badge">Admin Panel</span></div>
+    <button class="chat-bell-btn" id="chatBellBtn" onclick="openChatPanel()" title="Chat Pembeli">
+      <i class="ti ti-bell" style="font-size:17px"></i>
+      <span class="chat-bell-dot" id="chatBellDot"></span>
+    </button>
     <button class="dash-out" onclick="logoutStaff()"><i class="ti ti-logout" style="font-size:12px"></i> Log Keluar</button>
   </div>
   <div class="dash-body">
     <div class="dash-title" id="dashTitle">Log Pesanan</div>
     <div class="dash-sub" id="dashSub">Semua pesanan yang diterima disenaraikan di sini. Semak bukti pembayaran dan hantar kunci lesen secara manual.</div>
     <div class="d-stats" id="dashStats"></div>
+
+    <!-- REVENUE CHART -->
+    <div class="revenue-section">
+      <div class="rev-hd">
+        <div class="rev-title"><i class="ti ti-chart-bar" style="color:var(--acc)"></i> Carta Pendapatan</div>
+        <div class="rev-tabs">
+          <button class="rev-tab on" id="revTabBar" onclick="switchRevTab('bar',this)">Bar</button>
+          <button class="rev-tab" id="revTabLine" onclick="switchRevTab('line',this)">Trend</button>
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <canvas class="chart-canvas" id="revenueCanvas"></canvas>
+        <div class="chart-tooltip" id="chartTooltip"></div>
+        <div class="chart-empty" id="chartEmpty" style="display:none"><i class="ti ti-chart-bar-off" style="font-size:24px;opacity:.3"></i>Belum ada data pendapatan.</div>
+      </div>
+    </div>
+
     <div class="orders-hd">
       <span class="orders-t" id="ordersTitle">Senarai Pesanan</span>
       <button class="clr-btn" onclick="clearOrders()" id="clrBtn">Padam Semua</button>
@@ -1481,6 +1952,97 @@ footer a{color:var(--muted);text-decoration:none}
   <img id="zoomImg" src="" alt="">
 </div>
 
+<!-- FLOATING CHAT WIDGET -->
+<div class="fchat-ov" id="chatPanelOv" onclick="if(event.target===this)closeChatPanel()">
+  <div class="fchat" id="chatPanel">
+    <!-- Inbox view -->
+    <div id="chatInboxView" style="display:flex;flex-direction:column;flex:1;min-height:0">
+      <div class="fchat-hd">
+        <div class="fchat-hd-left">
+          <div class="fchat-hd-icon"><i class="ti ti-messages" style="font-size:14px"></i></div>
+          <div class="fchat-hd-title">Chat Pembeli</div>
+        </div>
+        <button class="fchat-close" onclick="closeChatPanel()"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="chat-inbox" id="chatInbox">
+        <div class="chat-inbox-empty">Belum ada perbualan.</div>
+      </div>
+    </div>
+    <!-- Chat window view -->
+    <div class="chat-window" id="chatWindowView">
+      <div class="fchat-hd">
+        <button class="chat-panel-back" onclick="showChatInbox()"><i class="ti ti-arrow-left" style="font-size:14px"></i></button>
+        <div class="fchat-hd-left" style="flex:1;min-width:0">
+          <div class="fchat-hd-title" id="chatWindowTitle" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Nama Pembeli</div>
+        </div>
+        <button class="fchat-close" onclick="closeChatPanel()"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="chat-buyer-info" id="chatBuyerInfo"></div>
+      <div class="chat-messages" id="chatMessages"></div>
+      <div class="chat-input-area">
+        <textarea class="chat-input" id="chatInput" placeholder="Taip mesej..." rows="1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChatMsg()}" oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,100)+'px'"></textarea>
+        <button class="chat-send-btn" onclick="sendChatMsg()"><i class="ti ti-send" style="font-size:14px"></i></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- QUICK PEEK MODAL -->
+<div class="peek-ov" id="peekOv" onclick="closePeek(event)">
+  <div class="peek-box" id="peekBox">
+    <button class="peek-close" onclick="closePeek()"><i class="ti ti-x"></i></button>
+    <img class="peek-thumb" id="peekThumb" src="" alt="" style="display:none">
+    <div class="peek-body">
+      <div class="peek-dev" id="peekDev"></div>
+      <div class="peek-name" id="peekName"></div>
+      <div class="peek-tags" id="peekTags"></div>
+      <div class="peek-desc" id="peekDesc"></div>
+      <div class="peek-foot">
+        <div class="peek-price" id="peekPrice"></div>
+        <div class="peek-actions">
+          <button class="btn-pri" style="padding:9px 20px;font-size:13px" id="peekBuyBtn"><i class="ti ti-credit-card"></i> Beli</button>
+          <button class="btn-secondary" id="peekAddBtn" style="padding:9px 20px;font-size:13px"><i class="ti ti-shopping-cart"></i> Troli</button>
+          <button class="back-btn" id="peekDetailBtn" style="padding:9px 16px;font-size:13px">Detail →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- BUYER CHAT FLOATING BUTTON -->
+<div id="buyerChatFab" style="display:none;position:fixed;bottom:88px;right:24px;z-index:800">
+  <button onclick="openBuyerChat()" style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,var(--acc),var(--acch));border:none;color:#fff;cursor:pointer;box-shadow:0 4px 16px rgba(91,110,245,.5);display:flex;align-items:center;justify-content:center;font-size:20px;transition:transform .2s,box-shadow .2s;position:relative" title="Chat dengan Seller" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+    <i class="ti ti-message-circle"></i>
+    <span id="buyerChatDot" style="display:none;position:absolute;top:4px;right:4px;width:10px;height:10px;background:var(--red);border-radius:50%;border:2px solid var(--bg)"></span>
+  </button>
+</div>
+
+<!-- BUYER CHAT PANEL -->
+<div id="buyerChatOv" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:800;backdrop-filter:blur(6px)" onclick="if(event.target===this)closeBuyerChat()">
+  <div id="buyerChatPanel" style="position:fixed;bottom:0;right:0;width:100%;max-width:380px;height:520px;max-height:90vh;background:var(--surf);border:1px solid var(--bord);border-radius:20px 20px 0 0;display:flex;flex-direction:column;animation:peekIn .3s cubic-bezier(.22,1,.36,1);overflow:hidden">
+    <!-- Header -->
+    <div style="display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--bord);background:var(--surf);flex-shrink:0">
+      <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--acc),var(--acch));display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <i class="ti ti-headset" style="font-size:16px;color:#fff"></i>
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:14px;font-weight:700;color:var(--txt)">Adam's Store Support</div>
+        <div style="font-size:11px;color:var(--grn);display:flex;align-items:center;gap:4px"><span style="width:6px;height:6px;background:var(--grn);border-radius:50%;display:inline-block"></span> Online</div>
+      </div>
+      <button onclick="closeBuyerChat()" style="background:var(--surf2);border:1px solid var(--bord);color:var(--muted);width:30px;height:30px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .15s" onmouseover="this.style.background='var(--redd)';this.style.color='var(--red)'" onmouseout="this.style.background='var(--surf2)';this.style.color='var(--muted)'"><i class="ti ti-x"></i></button>
+    </div>
+    <!-- Messages -->
+    <div id="buyerChatMessages" style="flex:1;overflow-y:auto;padding:14px 14px 8px;display:flex;flex-direction:column;gap:8px;scroll-behavior:smooth">
+      <div style="text-align:center;color:var(--sub);font-size:11px;padding:10px 0">Mulakan perbualan dengan seller. Kami cuba balas secepat mungkin! 💬</div>
+    </div>
+    <!-- Input -->
+    <div style="padding:10px 12px;border-top:1px solid var(--bord);display:flex;gap:8px;align-items:flex-end;flex-shrink:0;background:var(--surf)">
+      <textarea id="buyerChatInput" placeholder="Taip mesej..." rows="1" style="flex:1;background:var(--surf2);border:1px solid var(--bord);border-radius:10px;padding:9px 12px;font-size:13px;font-family:inherit;color:var(--txt);outline:none;resize:none;max-height:90px;line-height:1.4;transition:border-color .15s" onfocus="this.style.borderColor='var(--acc)'" onblur="this.style.borderColor='var(--bord)'" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendBuyerMsg()}" oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,90)+'px'"></textarea>
+      <button onclick="sendBuyerMsg()" style="width:38px;height:38px;border-radius:10px;background:var(--acc);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:opacity .15s" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'"><i class="ti ti-send" style="font-size:14px"></i></button>
+    </div>
+  </div>
+</div>
+
 <!-- DISCORD FLOATING BUTTON -->
 <a class="discord-fab" href="https://discord.gg/bEhYQUMwC2" target="_blank" title="Sertai Discord kami untuk support">
   <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057c.002.022.015.043.032.053a19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
@@ -1491,7 +2053,6 @@ footer a{color:var(--muted);text-decoration:none}
 <div class="toast" id="toast"><i class="ti ti-check" style="font-size:13px;color:var(--grn)"></i><span id="toastMsg"></span></div>
 
 <script>
-var EJSKEY='kPywVn2MxIg0TSczz', EJSSVC='service_qe4dy2h', EJSTPL='template_gmcvrhd';
 var STAFFPW='ilovetawau';
 var ADMINEMAIL='admin@adamsstore.co';
 var PRODS=[
@@ -1627,12 +2188,39 @@ var PRODS=[
     badge:null,
     desc_bm: 'FS2Crew untuk Fenix A320 menghidupkan kokpit anda dengan co-pilot AI yang responsif. Buat checklist, cabin calls dan interaksi crew Airbus A320 secara realistik menggunakan arahan suara.',
     desc_en: 'FS2Crew for Fenix A320 brings your cockpit to life with a responsive AI co-pilot. Perform checklists, cabin calls and realistic Airbus A320 crew interactions using voice commands.'
+  },
+  {
+    id:11,
+    name:'iFly 737 MAX',
+    cat:'ifly',
+    thumb:'ct-ifly',
+    image:'https://i.imgur.com/rSEy6vO.jpeg',
+    emoji:'&#9992;',
+    price:70,
+    tags:['737 MAX','Boeing','Study Level'],
+    badge:'new',
+    desc_bm: 'iFly 737 MAX adalah simulasi Boeing 737 MAX bertaraf study-level yang menggabungkan ketepatan sistem penerbangan dengan rekaan kokpit yang sangat terperinci. Dilengkapi MCAS, FMC generasi terkini, dan sistem auto-throttle yang realistik — pilihan terbaik untuk simmers yang mahukan pengalaman terbang Boeing yang autentik dalam MSFS.',
+    desc_en: 'iFly 737 MAX is a study-level Boeing 737 MAX simulation combining flight system accuracy with a highly detailed cockpit design. Features MCAS, next-gen FMC, and realistic auto-throttle — the best choice for simmers wanting an authentic Boeing experience in MSFS.'
+  },
+  {
+    id:12,
+    name:'FSRealistic Pro',
+    cat:'fsrealistic',
+    thumb:'ct-fsr',
+    image:'https://i.imgur.com/IPfnbxG.jpeg',
+    emoji:'&#128266;',
+    price:12,
+    tags:['Sound','Immersion','Effects'],
+    badge:'new',
+    desc_bm: 'FSRealistic Pro meningkatkan pengalaman simulasi anda dengan menambah bunyi dan getaran realistik yang tiada dalam MSFS secara lalai. Termasuk bunyi enjin yang lebih hidup, turbulens terasa, bunyi roda mendarat, angin, hujan, dan banyak lagi — menjadikan setiap penerbangan terasa seperti benar-benar berada dalam kokpit.',
+    desc_en: 'FSRealistic Pro enhances your simulation experience by adding realistic sounds and vibrations not present in MSFS by default. Includes more lifelike engine sounds, felt turbulence, landing gear sounds, wind, rain, and much more — making every flight feel like you are truly in the cockpit.'
   }
 ];
-var DEVLBL={fenix:'Fenix Simulations',pmdg:'PMDG',gsx:'FSDreamTeam',navigraph:'Navigraph',inibuilds:'iniBuilds',beyondatc:'BeyondATC',fs2crew:'FS2Crew'};
+var DEVLBL={fenix:'Fenix Simulations',pmdg:'PMDG',gsx:'FSDreamTeam',navigraph:'Navigraph',inibuilds:'iniBuilds',beyondatc:'BeyondATC',fs2crew:'FS2Crew',ifly:'iFly',fsrealistic:'FSRealistic'};
 var BDGCLS={hot:'b-hot',new:'b-new'};
 var cart=[],filt='all',srt='default',payMethod='tng',lang='bm';
 var uploadedFile=null,uploadedB64=null;
+var _authFromCheckout = false;
 
 var TX={
   bm:{heroH1:'Premium addons,<br><em>harga berpatutan.</em>',heroSub:'Fenix A320, PMDG 737, GSX Pro & Navigraph — penghantaran digital terus ke e-mel anda.',
@@ -1640,7 +2228,7 @@ var TX={
     filterLbl:'Tapis:',chipAll:'Semua',shopTitle:'Semua Addons',
     srtDef:'Utama',srtAsc:'Harga: Rendah ke Tinggi',srtDesc:'Harga: Tinggi ke Rendah',srtName:'Nama A-Z',
     bundleTitle:'Bundle Deal — Fenix A320 Base + GSX Pro',bundleSub:'Jimat lebih bila beli bersama. Tawaran terhad!',
-    footerL:"Adam's Store &copy; 2025 — MSFS Addons Malaysia",
+    footerL:"&copy; 2026 Adam's_Store.Co — Hak cipta terpelihara.",
     backLbl:'Kembali ke kedai',coTitle:'Pembayaran',coSub:'Lengkapkan maklumat, buat bayaran, kemudian muat naik bukti pembayaran anda.',
     infoTitle:'Maklumat Pembeli',lName:'Nama Penuh',lEmail:'E-mel (untuk terima kunci lesen)',
     payTitle:'Kaedah Pembayaran',proofTitle:'Bukti Pembayaran',
@@ -1670,13 +2258,15 @@ var TX={
     qrNoteMaybank:'Imbas QR menggunakan aplikasi <strong>Maybank2u</strong>. Pastikan jumlah tepat sebelum membuat bayaran.',
     noteTitle:'Note untuk Seller',noteDesc:'Ada kod diskaun atau sebarang maklumat untuk seller? Tulis di sini.',
     noteHint:'&#128274; Nota ini hanya dilihat oleh seller semasa memproses pesanan anda.',
-    noteDashLabel:'Note dari Buyer', descBackLbl:'Kembali ke kedai', buyNowBtn:'Beli Sekarang', addToCartBtn:'Tambah Ke Troli'},
+    noteDashLabel:'Note dari Buyer', descBackLbl:'Kembali ke kedai', buyNowBtn:'Beli Sekarang', addToCartBtn:'Tambah Ke Troli',
+    reviewFormTitle:'Tulis Review', reviewFormSub:'Kongsi pengalaman anda dengan addon ini',
+    reviewNamePh:'Nama anda (contoh: Adam)', reviewTextPh:'Tulis review anda di sini...', reviewSubmitBtn:'Hantar Review'},
   en:{heroH1:'Premium addons,<br><em>affordable pricing.</em>',heroSub:'Fenix A320, PMDG 737, GSX Pro & Navigraph — digital delivery straight to your email.',
     btnBrowse:'Browse Addons',stAddons:'Addons',stDigital:'Digital',stDeliv:'Delivery',
     filterLbl:'Filter:',chipAll:'All',shopTitle:'All Addons',
     srtDef:'Featured',srtAsc:'Price: Low to High',srtDesc:'Price: High to Low',srtName:'Name A-Z',
     bundleTitle:'Bundle Deal — Fenix A320 Base + GSX Pro',bundleSub:'Save more when you buy together. Limited time!',
-    footerL:"Adam's Store &copy; 2025 — MSFS Addons Malaysia",
+    footerL:"&copy; 2026 Adam's_Store.Co — Hak cipta terpelihara.",
     backLbl:'Back to shop',coTitle:'Checkout',coSub:'Complete your details, make payment, then upload your payment proof.',
     infoTitle:'Buyer Information',lName:'Full Name',lEmail:'Email (to receive license key)',
     payTitle:'Payment Method',proofTitle:'Payment Proof',
@@ -1706,7 +2296,9 @@ var TX={
     qrNoteMaybank:'Scan QR using the <strong>Maybank2u</strong> app. Verify the amount before making payment.',
     noteTitle:'Note to Seller',noteDesc:'Got a discount code or anything to tell the seller? Write it here.',
     noteHint:'&#128274; This note is only visible to the seller when processing your order.',
-    noteDashLabel:'Buyer Note', descBackLbl:'Back to shop', buyNowBtn:'Buy Now', addToCartBtn:'Add To Cart'}
+    noteDashLabel:'Buyer Note', descBackLbl:'Back to shop', buyNowBtn:'Buy Now', addToCartBtn:'Add To Cart',
+    reviewFormTitle:'Write a Review', reviewFormSub:'Share your experience with this addon',
+    reviewNamePh:'Your name (e.g. Adam)', reviewTextPh:'Write your review here...', reviewSubmitBtn:'Submit Review'}
 };
 
 function T(k){return TX[lang][k]||k;}
@@ -1716,6 +2308,9 @@ function setLang(l){
   document.getElementById('btnBM').classList.toggle('on',l==='bm');
   document.getElementById('btnEN').classList.toggle('on',l==='en');
   applyLang();
+  if(currentProductId && document.getElementById('pageDescription').classList.contains('active')){
+    showProductDescription(currentProductId);
+  }
 }
 
 function applyLang(){
@@ -1725,11 +2320,17 @@ function applyLang(){
     'uplSub','summTitle','totalLbl','subLbl','subNote','sucTitle','sucDesc','backShopBtn',
     'subtLbl','delivLbl','delivFree','totalCartLbl','coCartBtn','stDesc',
     'errName','errEmail','errProof','stErr','dashTitle','dashSub','ordersTitle','clrBtn',
-    'cartEmpty','qrNoteTng','qrNoteMaybank','noteTitle','noteDesc','noteHint', 'descBackLbl'];
+    'cartEmpty','qrNoteTng','qrNoteMaybank','noteTitle','noteDesc','noteHint', 'descBackLbl',
+    'reviewFormTitle','reviewFormSub','reviewSubmitBtn'];
   keys.forEach(function(k){
     var el=document.getElementById(k);
     if(el) el.innerHTML=T(k);
   });
+  // Update review placeholders
+  var rnEl = document.getElementById('reviewName');
+  if(rnEl) rnEl.placeholder = T('reviewNamePh');
+  var rtEl = document.getElementById('reviewText');
+  if(rtEl) rtEl.placeholder = T('reviewTextPh');
   document.getElementById('cartLabel').textContent=T('cartLabel');
   var noteEl=document.getElementById('buyerNote');
   if(noteEl) noteEl.placeholder=lang==='bm'?'Contoh: Dapat diskaun 10% dari Discord — kod: DISC10\n(Kosongkan jika tiada)':'Example: Got 10% discount from Discord — code: DISC10\n(Leave empty if none)';
@@ -1737,6 +2338,320 @@ function applyLang(){
   if(uplTitle) uplTitle.textContent=uploadedFile?T('uplDone'):T('uplTitle');
   render();
   renderCart();
+}
+
+// ===== REVENUE CHART =====
+var _revChartMode = 'bar';
+var _revChartData = [];
+
+function switchRevTab(mode, btn) {
+  _revChartMode = mode;
+  document.querySelectorAll('.rev-tab').forEach(function(t){t.classList.remove('on');});
+  if(btn) btn.classList.add('on');
+  drawRevenueChart(_revChartData);
+}
+
+function buildRevenueData(orders) {
+  // Group by date for last 14 days
+  var now = Date.now();
+  var days = 14;
+  var buckets = {};
+  for(var d=days-1;d>=0;d--){
+    var dt = new Date(now - d*86400000);
+    var key = dt.toLocaleDateString('ms-MY',{day:'2-digit',month:'short'});
+    buckets[key] = {label:key, bar:0, line:0};
+  }
+  orders.forEach(function(o){
+    var dt = new Date(o.timestamp);
+    var key = dt.toLocaleDateString('ms-MY',{day:'2-digit',month:'short'});
+    if(buckets[key]) {
+      buckets[key].bar += Number(o.total)||0;
+      buckets[key].line += Number(o.total)||0;
+    }
+  });
+  return Object.values(buckets);
+}
+
+function drawRevenueChart(data) {
+  var canvas = document.getElementById('revenueCanvas');
+  var emptyEl = document.getElementById('chartEmpty');
+  if(!canvas) return;
+  var ctx = canvas.getContext('2d');
+  var W = canvas.offsetWidth, H = canvas.offsetHeight;
+  canvas.width = W * (window.devicePixelRatio||1);
+  canvas.height = H * (window.devicePixelRatio||1);
+  ctx.scale(window.devicePixelRatio||1, window.devicePixelRatio||1);
+
+  var hasData = data.some(function(d){return d.bar>0;});
+  if(!hasData){emptyEl.style.display='flex';canvas.style.display='none';return;}
+  emptyEl.style.display='none';canvas.style.display='block';
+
+  var vals = data.map(function(d){return d.bar;});
+  var maxVal = Math.max.apply(null,vals)||1;
+  var padL=36,padR=16,padT=16,padB=32;
+  var chartW = W-padL-padR, chartH = H-padT-padB;
+
+  ctx.clearRect(0,0,W,H);
+
+  // Grid lines
+  var gridLines = 4;
+  ctx.strokeStyle='rgba(42,45,62,.8)';ctx.lineWidth=1;
+  ctx.fillStyle='rgba(124,128,153,.7)';ctx.font='10px Inter,sans-serif';ctx.textAlign='right';
+  for(var g=0;g<=gridLines;g++){
+    var gy = padT + chartH - (g/gridLines)*chartH;
+    ctx.beginPath();ctx.moveTo(padL,gy);ctx.lineTo(padL+chartW,gy);ctx.stroke();
+    ctx.fillText('RM '+(Math.round(maxVal*g/gridLines)),padL-4,gy+3);
+  }
+
+  var n = data.length;
+  var barW = (chartW / n) * 0.6;
+  var barGap = chartW / n;
+
+  if(_revChartMode === 'bar') {
+    data.forEach(function(d,i){
+      var x = padL + i*barGap + (barGap-barW)/2;
+      var barH = (d.bar/maxVal)*chartH;
+      var y = padT + chartH - barH;
+      // Gradient fill
+      var grad = ctx.createLinearGradient(0,y,0,y+barH);
+      grad.addColorStop(0,'rgba(91,110,245,.9)');
+      grad.addColorStop(1,'rgba(91,110,245,.25)');
+      ctx.fillStyle = grad;
+      var r = Math.min(5,barW/2);
+      ctx.beginPath();
+      ctx.moveTo(x+r,y);ctx.lineTo(x+barW-r,y);ctx.quadraticCurveTo(x+barW,y,x+barW,y+r);
+      ctx.lineTo(x+barW,y+barH);ctx.lineTo(x,y+barH);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);
+      ctx.closePath();ctx.fill();
+      // Label
+      ctx.fillStyle='rgba(74,77,98,.9)';ctx.textAlign='center';ctx.font='9px Inter,sans-serif';
+      ctx.fillText(d.label,x+barW/2,padT+chartH+14);
+      // Value on bar
+      if(d.bar>0){
+        ctx.fillStyle='rgba(165,180,252,.9)';ctx.font='9px Inter,sans-serif';
+        ctx.fillText('RM'+d.bar,x+barW/2,y-4);
+      }
+    });
+  } else {
+    // Line chart
+    ctx.beginPath();
+    var grad2 = ctx.createLinearGradient(0,padT,0,padT+chartH);
+    grad2.addColorStop(0,'rgba(91,110,245,.25)');grad2.addColorStop(1,'rgba(91,110,245,0)');
+    data.forEach(function(d,i){
+      var x = padL + i*barGap + barGap/2;
+      var y = padT + chartH - (d.line/maxVal)*chartH;
+      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    });
+    ctx.strokeStyle='rgba(91,110,245,.9)';ctx.lineWidth=2.5;ctx.lineJoin='round';ctx.stroke();
+    // Fill under line
+    ctx.lineTo(padL+n*barGap-barGap/2,padT+chartH);ctx.lineTo(padL+barGap/2,padT+chartH);ctx.closePath();
+    ctx.fillStyle=grad2;ctx.fill();
+    // Dots + labels
+    data.forEach(function(d,i){
+      var x = padL + i*barGap + barGap/2;
+      var y = padT + chartH - (d.line/maxVal)*chartH;
+      ctx.beginPath();ctx.arc(x,y,3.5,0,Math.PI*2);
+      ctx.fillStyle=d.line>0?'rgba(91,110,245,1)':'rgba(42,45,62,1)';ctx.fill();
+      ctx.fillStyle='rgba(74,77,98,.9)';ctx.textAlign='center';ctx.font='9px Inter,sans-serif';
+      ctx.fillText(d.label,x,padT+chartH+14);
+    });
+  }
+}
+
+// ===== PROGRESS INDICATOR =====
+var _checkoutStep = 2; // 0=Browse,1=Cart,2=Info,3=Pay,4=Done
+function setCheckoutStep(step) {
+  _checkoutStep = step;
+  for(var i=0;i<5;i++){
+    var ps = document.getElementById('ps'+i);
+    if(!ps) continue;
+    ps.classList.remove('done','active');
+    if(i < step) ps.classList.add('done');
+    else if(i === step) ps.classList.add('active');
+  }
+  for(var j=0;j<4;j++){
+    var pl = document.getElementById('pl'+j);
+    if(!pl) continue;
+    pl.classList.remove('done','active');
+    if(j < step-1) pl.classList.add('done');
+    else if(j === step-1) pl.classList.add('active');
+  }
+}
+
+// ===== CHAT SYSTEM =====
+var _chatCurrentEmail = '';
+var _chatCurrentName = '';
+var _chatCurrentOrderId = '';
+var _chatPollTimer = null;
+var _chatLastCount = 0;
+
+function openChatPanel() {
+  document.getElementById('chatPanelOv').classList.add('open');
+  showChatInbox();
+  loadChatInbox();
+  clearInterval(_chatPollTimer);
+  _chatPollTimer = setInterval(checkChatNotifications, 8000);
+}
+
+function closeChatPanel() {
+  document.getElementById('chatPanelOv').classList.remove('open');
+  clearInterval(_chatPollTimer);
+  // restart admin poll
+  startAdminChatPoll();
+}
+
+function showChatInbox() {
+  document.getElementById('chatInboxView').style.display = 'flex';
+  document.getElementById('chatWindowView').classList.remove('open');
+  loadChatInbox();
+}
+
+function loadChatInbox() {
+  var inbox = document.getElementById('chatInbox');
+  inbox.innerHTML = '<div class="chat-inbox-empty" style="color:var(--sub);font-size:12px;padding:20px;text-align:center">Memuatkan...</div>';
+  window._fb.getChats().then(function(chats){
+    if(!chats.length){ inbox.innerHTML='<div class="chat-inbox-empty">Belum ada perbualan.</div>'; return; }
+    inbox.innerHTML = chats.map(function(c){
+      var initial = (c.name||'?').charAt(0).toUpperCase();
+      var timeStr = c.lastTime ? new Date(c.lastTime).toLocaleTimeString('ms-MY',{hour:'2-digit',minute:'2-digit'}) : '';
+      return '<div class="chat-inbox-item'+(c.unread?' unread':'')+'" onclick="openChatWithBuyer(\''+c.email+'\',\''+c.name+'\',\''+c.orderId+'\')">'+
+        '<div class="chat-inbox-avatar">'+initial+'</div>'+
+        '<div class="chat-inbox-info">'+
+          '<div class="chat-inbox-name">'+c.name+'</div>'+
+          '<div class="chat-inbox-preview">'+(c.lastMsg||'Tiada mesej lagi')+'</div>'+
+        '</div>'+
+        '<div class="chat-inbox-meta">'+
+          '<div class="chat-inbox-time">'+timeStr+'</div>'+
+          (c.unread?'<div class="chat-unread-dot"></div>':'')+
+        '</div>'+
+      '</div>';
+    }).join('');
+  });
+}
+
+function openChatWithBuyer(email, name, orderId) {
+  if(!email) return;
+  _chatCurrentEmail = email;
+  _chatCurrentName = name;
+  _chatCurrentOrderId = orderId;
+  // Open panel if not open
+  document.getElementById('chatPanelOv').classList.add('open');
+  // Switch to chat window
+  document.getElementById('chatInboxView').style.display = 'none';
+  document.getElementById('chatWindowView').classList.add('open');
+  document.getElementById('chatWindowTitle').textContent = name;
+  document.getElementById('chatBuyerInfo').innerHTML =
+    '<i class="ti ti-mail" style="font-size:11px"></i> '+email+
+    (orderId ? ' &nbsp;·&nbsp; <i class="ti ti-receipt" style="font-size:11px"></i> '+orderId : '');
+  // Init chat in Firebase if needed
+  window._fb.initChat(email, name, orderId).then(function(){
+    loadChatMessages();
+    window._fb.markChatRead(email);
+    checkChatNotifications();
+  });
+  // Polling
+  clearInterval(_chatPollTimer);
+  _chatPollTimer = setInterval(function(){
+    loadChatMessages();
+  }, 4000);
+}
+
+function loadChatMessages() {
+  window._fb.getChatMessages(_chatCurrentEmail).then(function(msgs){
+    var el = document.getElementById('chatMessages');
+    var wasAtBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
+    el.innerHTML = msgs.length ? msgs.map(function(m){
+      var cls = m.fromSeller ? 'from-seller' : 'from-buyer';
+      return '<div style="display:flex;flex-direction:column;align-items:'+(m.fromSeller?'flex-end':'flex-start')+'">'+
+        '<div class="chat-msg '+cls+'">'+
+          '<div>'+m.text+'</div>'+
+          '<div class="chat-msg-time">'+m.timeStr+'</div>'+
+        '</div>'+
+      '</div>';
+    }).join('') : '<div style="text-align:center;color:var(--sub);font-size:11px;padding:20px">Mulakan perbualan dengan pembeli.</div>';
+    if(wasAtBottom || msgs.length <= 1) el.scrollTop = el.scrollHeight;
+  });
+}
+
+function sendChatMsg() {
+  var inp = document.getElementById('chatInput');
+  var txt = (inp.value||'').trim();
+  if(!txt || !_chatCurrentEmail) return;
+  inp.value=''; inp.style.height='auto';
+  window._fb.sendChatMessage(_chatCurrentEmail, _chatCurrentName, _chatCurrentOrderId, txt, true).then(function(){
+    loadChatMessages();
+  });
+}
+
+function checkChatNotifications() {
+  window._fb.getChats().then(function(chats){
+    var hasUnread = chats.some(function(c){return c.unread;});
+    var dot = document.getElementById('chatBellDot');
+    if(dot) dot.classList.toggle('show', hasUnread);
+    // Update inbox if panel open and on inbox view
+    if(document.getElementById('chatPanelOv').classList.contains('open') &&
+       document.getElementById('chatInboxView').style.display !== 'none'){
+      loadChatInbox();
+    }
+  });
+}
+
+// Poll every 12s when admin panel open
+function startAdminChatPoll() {
+  clearInterval(_chatPollTimer);
+  checkChatNotifications();
+  _chatPollTimer = setInterval(checkChatNotifications, 12000);
+}
+
+// ===== QUICK PEEK =====
+window._peekId = null;
+function openPeek(id){
+  var p = PRODS.find(function(x){return x.id===id;});
+  if(!p) return;
+  window._peekId = id;
+  var ov = document.getElementById('peekOv');
+  var thumb = document.getElementById('peekThumb');
+  if(p.image){ thumb.src=p.image; thumb.style.display='block'; }
+  else { thumb.style.display='none'; }
+  document.getElementById('peekDev').textContent = DEVLBL[p.cat]||p.cat;
+  document.getElementById('peekName').textContent = p.name;
+  document.getElementById('peekDesc').textContent = lang==='bm'?p.desc_bm:p.desc_en;
+  document.getElementById('peekTags').innerHTML = p.tags.map(function(t){return '<span class="tag" style="font-size:11px;padding:3px 9px">'+t+'</span>';}).join('');
+  document.getElementById('peekPrice').textContent = 'RM '+p.price;
+  document.getElementById('peekBuyBtn').onclick = function(){ closePeek(); buyNow(id); };
+  document.getElementById('peekAddBtn').onclick = function(){ addToCart(id); };
+  document.getElementById('peekDetailBtn').onclick = function(){ closePeek(); showProductDescription(id); };
+  ov.classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closePeek(e){
+  if(e && document.getElementById('peekBox').contains(e.target)) return;
+  document.getElementById('peekOv').classList.remove('open');
+  document.body.style.overflow='';
+}
+
+var _cardView = 'grid';
+function setView(v){
+  _cardView = v;
+  var grid = document.getElementById('grid');
+  grid.classList.toggle('list-view', v === 'list');
+  document.getElementById('viewGrid').classList.toggle('on', v === 'grid');
+  document.getElementById('viewList').classList.toggle('on', v === 'list');
+}
+
+// Cache for review averages (loaded lazily)
+var _reviewCache = {};
+
+function getStarHtml(avg, count){
+  if(avg === null || avg === undefined) return '';
+  var full = Math.round(avg);
+  var stars = '';
+  for(var i=1;i<=5;i++) stars += (i<=full ? '★' : '☆');
+  return '<span class="card-stars">'+stars+'</span><span class="card-stars-count">('+count+')</span>';
+}
+
+function getCatChipClass(cat){
+  var map={fenix:'chip-fenix',pmdg:'chip-pmdg',gsx:'chip-gsx',GSX:'chip-gsx',navigraph:'chip-navigraph',inibuilds:'chip-inibuilds',beyondatc:'chip-beyondatc',fs2crew:'chip-fs2crew',ifly:'chip-ifly',fsrealistic:'chip-fsrealistic'};
+  return map[cat]||'';
 }
 
 function render(){
@@ -1756,20 +2671,71 @@ function render(){
     document.getElementById('grid').innerHTML='<div class="search-no-results" style="grid-column:1/-1"><i class="ti ti-search-off"></i>Tiada produk ditemui untuk "<strong>'+searchQuery+'"</strong></div>';
     return;
   }
-  document.getElementById('grid').innerHTML=list.map(function(p){
-    var isWished = wishlist.indexOf(p.id) !== -1;
-    return '<div class="card cat-'+p.cat+'" onclick="showProductDescription('+p.id+')"><div class="card-thumb '+p.thumb+'" style="position:relative">'+
-      (p.image?'<img src="'+p.image+'" alt="'+p.name+'">':'<span>'+p.emoji+'</span>')+
-      (p.badge?'<span class="card-badge '+BDGCLS[p.badge]+'">'+p.badge+'</span>':'')+
-      '<button class="wish-btn'+(isWished?' wished':'')+'" id="wishbtn-'+p.id+'" onclick="toggleWish('+p.id+', event)" title="'+(isWished?'Buang dari Wishlist':'Tambah ke Wishlist')+'"><i class="ti ti-heart'+(isWished?'-filled':'')+'" style="font-size:13px"></i></button>'+
-      '</div><div class="card-body"><div class="card-dev">'+(DEVLBL[p.cat]||p.cat)+'</div>'+
-      '<div class="card-name">'+p.name+'</div>'+
-      stockHtml(p.id)+
-      '<div class="card-tags">'+p.tags.map(function(t){return '<span class="tag">'+t+'</span>';}).join('')+'</div>'+
-      '<div class="card-foot"><span class="price">RM '+p.price+'</span>'+
-      '<button class="add-btn" id="addbtn-'+p.id+'" onclick="event.stopPropagation(); addToCart('+p.id+')">'+T('addBtn')+'</button>'+
-      '</div></div></div>';
-  }).join('');
+  // Show shimmer skeletons first
+  var skeletonCount = Math.min(list.length, 6);
+  var skeletons = '';
+  for(var s=0;s<skeletonCount;s++){
+    skeletons+='<div class="card-skeleton"><div class="skel-thumb"></div><div class="skel-body"><div class="skel-line sm"></div><div class="skel-line lg"></div><div class="skel-line short"></div></div></div>';
+  }
+  var gridEl = document.getElementById('grid');
+  gridEl.innerHTML = skeletons;
+  gridEl.classList.toggle('list-view', _cardView === 'list');
+
+  // Render actual cards after tiny delay for shimmer effect
+  setTimeout(function(){
+    gridEl.innerHTML=list.map(function(p){
+      var isWished = wishlist.indexOf(p.id) !== -1;
+      var catChip = getCatChipClass(p.cat);
+      var cached = _reviewCache[p.id];
+      var starsHtml = cached ? getStarHtml(cached.avg, cached.count) : '<span class="card-stars-count" id="stars-'+p.id+'"></span>';
+      var peekBtn = '<button class="card-peek-btn" onclick="event.stopPropagation();openPeek('+p.id+')" title="Preview"><i class="ti ti-eye" style="font-size:11px"></i> Preview</button>';
+      var soonHtml = p.soon ? '<div class="soon-overlay"><div class="soon-pill"><i class="ti ti-clock" style="font-size:10px"></i> Akan Datang</div></div>' : '';
+      return '<div class="card cat-'+p.cat+(p.soon?' soon-card':'')+'" onclick="'+(p.soon?'':'showProductDescription('+p.id+')')+'">'+
+        '<div class="card-thumb '+p.thumb+'" style="position:relative">'+
+          (p.image?'<img src="'+p.image+'" alt="'+p.name+'">':'<span>'+p.emoji+'</span>')+
+          (p.badge?'<span class="card-badge '+BDGCLS[p.badge]+'">'+p.badge+'</span>':'')+
+          '<button class="wish-btn'+(isWished?' wished':'')+'" id="wishbtn-'+p.id+'" onclick="toggleWish('+p.id+', event)" title="'+(isWished?'Buang dari Wishlist':'Tambah ke Wishlist')+'"><i class="ti ti-heart'+(isWished?'-filled':'')+'" style="font-size:13px"></i></button>'+
+          (!p.soon ? peekBtn : '')+
+          soonHtml+
+        '</div>'+
+        '<div class="card-body">'+
+          '<div class="card-top-row">'+
+            '<div class="card-dev">'+(DEVLBL[p.cat]||p.cat)+'</div>'+
+            '<span class="card-cat-chip '+catChip+'">'+(p.cat.toUpperCase())+'</span>'+
+          '</div>'+
+          '<div class="card-name">'+p.name+'</div>'+
+          '<div class="card-stars-row">'+starsHtml+'</div>'+
+          (!p.soon ? stockHtml(p.id) : '')+
+          '<div class="card-tags">'+p.tags.map(function(t){return '<span class="tag">'+t+'</span>';}).join('')+'</div>'+
+          '<div class="card-foot">'+
+            '<div class="price-wrap"><div class="price-label">Harga</div><span class="price">RM '+p.price+'</span></div>'+
+            '<div class="card-actions">'+
+              (!p.soon ? '<button class="add-btn" id="addbtn-'+p.id+'" onclick="event.stopPropagation(); addToCart('+p.id+')"><i class="ti ti-shopping-cart-plus" style="font-size:12px"></i> '+T('addBtn')+'</button>' : '<button class="add-btn" style="background:var(--surf3);color:var(--muted);cursor:default" disabled><i class="ti ti-clock" style="font-size:12px"></i> Soon</button>')+
+            '</div>'+
+          '</div>'+
+        '</div>'+
+      '</div>';
+    }).join('');
+    gridEl.classList.toggle('list-view', _cardView === 'list');
+
+    // Load review stars for visible cards
+    list.forEach(function(p){
+      if(_reviewCache[p.id]){
+        var el = document.getElementById('stars-'+p.id);
+        if(el) el.outerHTML = getStarHtml(_reviewCache[p.id].avg, _reviewCache[p.id].count);
+      } else {
+        fbFetch('/reviews/prod'+p.id+'.json','GET').then(function(data){
+          if(!data||typeof data!=='object') return;
+          var revs = Object.values(data);
+          if(!revs.length) return;
+          var avg = revs.reduce(function(s,r){return s+r.stars;},0)/revs.length;
+          _reviewCache[p.id] = {avg: parseFloat(avg.toFixed(1)), count: revs.length};
+          var el = document.getElementById('stars-'+p.id);
+          if(el) el.outerHTML = getStarHtml(_reviewCache[p.id].avg, _reviewCache[p.id].count);
+        }).catch(function(){});
+      }
+    });
+  }, 180);
 }
 
 var currentProductId = null;
@@ -1903,6 +2869,12 @@ function addToCartFromDesc(id){
 function buyNow(id) {
   var p=PRODS.find(function(x){return x.id===id;});
   if(!p) return;
+  if(!currentUser){
+    _authFromCheckout = true;
+    toast(lang==='bm' ? 'Sila daftar atau log masuk untuk membeli.' : 'Please sign in or register to purchase.');
+    openAuth('signup');
+    return;
+  }
   if(!cart.find(function(x){return x.id===id;})){
     cart.push(Object.assign({},p));
     document.getElementById('cartBadge').textContent=cart.length;
@@ -1975,15 +2947,23 @@ function closeCart(){document.getElementById('overlay').classList.remove('open')
 
 function goCheckout(){
   if(cart.length===0){toast('Troli kosong!');return;}
+  if(!currentUser){
+    _authFromCheckout = true;
+    toast(lang==='bm' ? 'Sila daftar atau log masuk untuk meneruskan pembayaran.' : 'Please sign in or register to proceed to checkout.');
+    openAuth('signup');
+    return;
+  }
+  _authFromCheckout = false;
   closeCart();
-  // Reset discount state
   appliedDiscount = null;
   var discInputEl = document.getElementById('discountInput');
   var discMsgEl = document.getElementById('discMsg');
   if(discInputEl){ discInputEl.value=''; discInputEl.classList.remove('valid','invalid'); }
   if(discMsgEl){ discMsgEl.className='disc-msg'; }
   updateCheckoutTotal();
-  showPage('pageCheckout');window.scrollTo(0,0);
+  showPage('pageCheckout');
+  setCheckoutStep(2);
+  window.scrollTo(0,0);
   autoFillCheckout();
 }
 
@@ -1994,6 +2974,7 @@ function showPage(id){
   document.getElementById('pageDash').classList.remove('active');
   document.getElementById('mainNav').style.display='flex';
   document.getElementById(id).classList.add('active');
+  updateBuyerChatFab();
 }
 
 function selPay(m){
@@ -2044,6 +3025,7 @@ function submitOrder(){
   var btn=document.getElementById('subBtn');
   btn.disabled=true;
   btn.innerHTML='<i class="ti ti-loader"></i> '+T('sending');
+  setCheckoutStep(3);
   var buyerNote=document.getElementById('buyerNote').value.trim();
   var discNote = appliedDiscount ? ' | Diskaun: '+appliedDiscount.code+' (-'+appliedDiscount.pct+'%, -RM'+discAmt.toFixed(2)+')' : '';
   var order={id:'ORD-'+Date.now(),timestamp:Date.now(),time:new Date().toLocaleString('ms-MY'),name:name,email:email,
@@ -2059,16 +3041,8 @@ function submitOrder(){
   if(window._fbReady && window._fb) {
     window._fb.saveOrder(orderToSave);
   }
-  emailjs.init(EJSKEY);
-  emailjs.send(EJSSVC,EJSTPL,{
-    buyer_name:name,buyer_email:email,
-    items_list:cart.map(function(p){return p.name+' — RM '+p.price;}).join('\n')+(appliedDiscount?'\nDiskaun '+appliedDiscount.code+': -RM'+discAmt.toFixed(2):''),
-    total:'RM '+finalTotal.toFixed(2),payment:payLbl,
-    order_id:order.id,order_time:order.time,
-    buyer_note:buyerNote||'(Tiada nota)',
-    proof_image:uploadedB64
-  }).then(function(){toast(T('toastSent'));finishOrder(order,name,email,payLbl,finalTotal,btn);})
-    .catch(function(){toast(T('toastFail'));finishOrder(order,name,email,payLbl,finalTotal,btn);});
+  toast(lang==='bm' ? 'Pembayaran Berjaya!' : 'Payment Successful!');
+  finishOrder(order,name,email,payLbl,finalTotal,btn);
 }
 
 function finishOrder(order,name,email,payLbl,total,btn){
@@ -2081,6 +3055,7 @@ function finishOrder(order,name,email,payLbl,total,btn){
   cart=[];uploadedFile=null;uploadedB64=null;
   document.getElementById('buyerNote').value='';
   document.getElementById('cartBadge').textContent=0;
+  setCheckoutStep(4);
   setTimeout(function(){
     showPage('pageSuccess');window.scrollTo(0,0);
     btn.disabled=false;
@@ -2100,14 +3075,18 @@ function logoutStaff(){
   document.getElementById('pageDash').classList.remove('active');
   document.getElementById('mainNav').style.display='flex';
   document.getElementById('pageShop').classList.add('active');
+  updateBuyerChatFab();
 }
 function showDash(){
   document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
   document.getElementById('mainNav').style.display='none';
   document.getElementById('pageDash').classList.add('active');
+  var fab = document.getElementById('buyerChatFab');
+  if(fab) fab.style.display = 'none';
   adminInitTabs();
   adminLoadReviews('all', document.querySelector('.admin-rev-tab'));
   renderDash();
+  startAdminChatPoll();
 }
 function renderDash(){
   var el=document.getElementById('ordersList');
@@ -2119,9 +3098,12 @@ function renderDash(){
     var done=orders.filter(function(o){return o.status==='done';}).length;
     document.getElementById('dashStats').innerHTML=
       '<div class="d-stat"><div class="d-stat-n">'+orders.length+'</div><div class="d-stat-l">'+T('statOrders')+'</div></div>'+
-      '<div class="d-stat"><div class="d-stat-n">RM '+rev+'</div><div class="d-stat-l">'+T('statRev')+'</div></div>'+
+      '<div class="d-stat"><div class="d-stat-n">RM '+rev.toFixed(2)+'</div><div class="d-stat-l">'+T('statRev')+'</div></div>'+
       '<div class="d-stat"><div class="d-stat-n" style="color:var(--gold)">'+pend+'</div><div class="d-stat-l">'+T('statPend')+'</div></div>'+
       '<div class="d-stat"><div class="d-stat-n" style="color:var(--grn)">'+done+'</div><div class="d-stat-l">'+T('statDone')+'</div></div>';
+    // Draw revenue chart
+    _revChartData = buildRevenueData(orders);
+    setTimeout(function(){drawRevenueChart(_revChartData);},100);
     if(orders.length===0){el.innerHTML='<div class="no-orders">'+T('noOrders')+'</div>';return;}
     el.innerHTML=orders.map(function(o){
       var docId=o._docId;
@@ -2143,6 +3125,7 @@ function renderDash(){
         (o.proof?'<div class="o-proof"><div class="o-proof-lbl">'+T('proofLbl')+'</div><img class="o-proof-img" src="'+o.proof+'" onclick="zoomOrder(\''+docId+'\')"></div>':'')+
         '<div class="o-actions">'+
           (o.status!=='done'?'<button class="abtn a-done" onclick="markDone(\''+docId+'\')">'+T('mDone')+'</button>':'')+
+          '<button class="abtn a-chat" onclick="openChatWithBuyer(\''+o.email+'\',\''+o.name+'\',\''+o.id+'\')"><i class="ti ti-message-circle" style="font-size:11px"></i> Chat</button>'+
           '<button class="abtn a-del" onclick="delOrder(\''+docId+'\')">'+T('mDel')+'</button>'+
         '</div>'+
       '</div>';
@@ -2385,7 +3368,7 @@ document.addEventListener('click', function(e){
 function skipIntro(){
   var s = document.getElementById('introScreen');
   s.classList.add('intro-out');
-  setTimeout(function(){ s.style.display='none'; }, 500);
+  setTimeout(function(){ s.style.display='none'; updateBuyerChatFab(); }, 500);
   updateNavUser();
 }
 
@@ -2405,6 +3388,7 @@ function openAuth(tab){
 function closeAuth(){
   document.getElementById('authOverlay').classList.remove('open');
   updateNavUser();
+  updateBuyerChatFab();
 }
 
 function switchAuthTab(tab){
@@ -2456,6 +3440,7 @@ function doSignIn(){
         closeAuth();
         if(document.getElementById('buyerName')) document.getElementById('buyerName').value = res.user.name||'';
         if(document.getElementById('buyerEmail')) document.getElementById('buyerEmail').value = res.user.email||'';
+        if(_authFromCheckout && cart.length > 0){ _authFromCheckout = false; goCheckout(); }
       }, 900);
     } else if(res.error === 'notfound'){
       showAuthErr('siEmailErr','Akaun tidak dijumpai. Daftar dahulu?');
@@ -2507,6 +3492,7 @@ function doSignUp(){
             closeAuth();
             if(document.getElementById('buyerName')) document.getElementById('buyerName').value = name;
             if(document.getElementById('buyerEmail')) document.getElementById('buyerEmail').value = email;
+            if(_authFromCheckout && cart.length > 0){ _authFromCheckout = false; goCheckout(); }
           }, 900);
         } else {
           btn.disabled=false; btn.innerHTML='<i class="ti ti-user-plus" style="font-size:14px"></i> Daftar Akaun';
@@ -2521,6 +3507,8 @@ function doLogout(){
   clearSession();
   applyTheme('dark');
   updateNavUser();
+  updateBuyerChatFab();
+  closeBuyerChat();
   toast('Anda telah log keluar.');
 }
 
@@ -2906,23 +3894,101 @@ document.addEventListener('mousemove', function(e){
   });
 });
 
+// ===== BUYER CHAT =====
+var _buyerChatPollTimer = null;
+
+function updateBuyerChatFab() {
+  var fab = document.getElementById('buyerChatFab');
+  if(!fab) return;
+  var inDash = document.getElementById('pageDash').classList.contains('active');
+  var introVisible = document.getElementById('introScreen').style.display !== 'none';
+  fab.style.display = (currentUser && !inDash && !introVisible) ? 'block' : 'none';
+}
+
+function openBuyerChat() {
+  if(!currentUser){ openAuth('signin'); return; }
+  document.getElementById('buyerChatOv').style.display = 'block';
+  // Init chat session in Firebase
+  window._fb.initChat(currentUser.email, currentUser.name, '').then(function(){
+    loadBuyerChatMessages();
+    window._fb.markChatRead(currentUser.email);
+  });
+  // Poll for new messages every 5s
+  clearInterval(_buyerChatPollTimer);
+  _buyerChatPollTimer = setInterval(function(){
+    loadBuyerChatMessages();
+  }, 5000);
+}
+
+function closeBuyerChat() {
+  document.getElementById('buyerChatOv').style.display = 'none';
+  clearInterval(_buyerChatPollTimer);
+}
+
+function loadBuyerChatMessages() {
+  if(!currentUser) return;
+  window._fb.getChatMessages(currentUser.email).then(function(msgs){
+    var el = document.getElementById('buyerChatMessages');
+    if(!el) return;
+    var wasAtBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
+    if(!msgs.length) return; // keep welcome msg if no msgs
+    el.innerHTML = msgs.map(function(m){
+      var isBuyer = !m.fromSeller;
+      return '<div style="display:flex;justify-content:'+(isBuyer?'flex-end':'flex-start')+';margin-bottom:2px">'+
+        '<div style="max-width:75%;background:'+(isBuyer?'var(--acc)':'var(--surf2)')+';color:'+(isBuyer?'#fff':'var(--txt)')+';padding:9px 12px;border-radius:'+(isBuyer?'14px 14px 4px 14px':'14px 14px 14px 4px')+';font-size:13px;line-height:1.5;border:1px solid '+(isBuyer?'transparent':'var(--bord)')+';word-break:break-word">'+
+          '<div>'+m.text+'</div>'+
+          '<div style="font-size:9px;opacity:.6;margin-top:3px;text-align:right">'+m.timeStr+'</div>'+
+        '</div>'+
+      '</div>';
+    }).join('');
+    if(wasAtBottom) el.scrollTop = el.scrollHeight;
+  });
+}
+
+function sendBuyerMsg() {
+  if(!currentUser) return;
+  var inp = document.getElementById('buyerChatInput');
+  var txt = (inp.value||'').trim();
+  if(!txt) return;
+  inp.value = ''; inp.style.height = 'auto';
+  // fromSeller = false means this is from buyer
+  window._fb.sendChatMessage(currentUser.email, currentUser.name, '', txt, false).then(function(){
+    loadBuyerChatMessages();
+    // Notify admin bell
+    checkChatNotifications();
+  });
+  // Optimistic UI — show message immediately
+  var el = document.getElementById('buyerChatMessages');
+  var timeStr = new Date().toLocaleTimeString('ms-MY',{hour:'2-digit',minute:'2-digit'});
+  el.innerHTML += '<div style="display:flex;justify-content:flex-end;margin-bottom:2px">'+
+    '<div style="max-width:75%;background:var(--acc);color:#fff;padding:9px 12px;border-radius:14px 14px 4px 14px;font-size:13px;line-height:1.5;border:1px solid transparent;word-break:break-word">'+
+      '<div>'+txt+'</div>'+
+      '<div style="font-size:9px;opacity:.6;margin-top:3px;text-align:right">'+timeStr+'</div>'+
+    '</div>'+
+  '</div>';
+  el.scrollTop = el.scrollHeight;
+}
+
 render();
 applyLang();
 loadSession();
 updateNavUser();
+updateBuyerChatFab();
 updateWishBadge();
 renderRecent();
 if(currentUser){
   applyTheme(currentUser.theme||'dark');
-  // Already logged in from previous session — skip intro
   var s = document.getElementById('introScreen');
   if(s) s.style.display='none';
 } else {
   applyTheme('dark');
-  // Show intro, hide shop content until dismissed
 }
-// Auto-fill if session exists
 autoFillCheckout();
+
+// Redraw chart on resize
+window.addEventListener('resize', function(){
+  if(_revChartData && _revChartData.length) drawRevenueChart(_revChartData);
+});
 </script>
 </body>
 </html>
