@@ -82,11 +82,6 @@ window._fb = {
       return data && data.email ? data : null;
     }).catch(function(){ return null; });
   },
-  registerUser: function(name, email, password) {
-    var key = emailToKey(email);
-    var user = { name: name, email: email, passwordHash: simpleHash(password), createdAt: Date.now() };
-    return fbFetch('/users/'+key+'.json', 'PUT', user).then(function(){ return user; }).catch(function(e){ console.error('registerUser',e); return null; });
-  },
   loginUser: function(email, password) {
     var key = emailToKey(email);
     return fbFetch('/users/'+key+'.json', 'GET').then(function(data){
@@ -109,6 +104,59 @@ window._fb = {
       }).filter(function(o){ return o.email.toLowerCase() === email.toLowerCase(); })
         .sort(function(a,b){ return b.timestamp - a.timestamp; });
     }).catch(function(){ return []; });
+  },
+  // Admin review functions
+  getReviews: function(prodId) {
+    return fbFetch('/reviews/prod'+prodId+'.json','GET').then(function(data){
+      if(!data||typeof data!=='object') return [];
+      return Object.keys(data).map(function(k){ return Object.assign({},data[k],{_key:k}); })
+        .sort(function(a,b){ return b.timestamp-a.timestamp; });
+    }).catch(function(){ return []; });
+  },
+  deleteReview: function(prodId, reviewKey) {
+    return fbFetch('/reviews/prod'+prodId+'/'+reviewKey+'.json','DELETE').catch(function(e){ console.error('deleteReview',e); });
+  },
+  replyReview: function(prodId, reviewKey, replyText) {
+    return fbFetch('/reviews/prod'+prodId+'/'+reviewKey+'.json','PATCH',{
+      adminReply: replyText,
+      adminReplyAt: new Date().toLocaleDateString('ms-MY')
+    }).catch(function(e){ console.error('replyReview',e); });
+  },
+  getAllReviews: function() {
+    return fbFetch('/reviews.json','GET').then(function(data){
+      if(!data||typeof data!=='object') return [];
+      var all=[];
+      Object.keys(data).forEach(function(prodKey){
+        var prodId=prodKey.replace('prod','');
+        if(data[prodKey]&&typeof data[prodKey]==='object'){
+          Object.keys(data[prodKey]).forEach(function(rKey){
+            all.push(Object.assign({},data[prodKey][rKey],{_key:rKey,_prodId:prodId}));
+          });
+        }
+      });
+      return all.sort(function(a,b){ return b.timestamp-a.timestamp; });
+    }).catch(function(){ return []; });
+  },
+  // Username uniqueness check
+  checkUsername: function(username) {
+    return fbFetch('/usernames/'+username.toLowerCase()+'.json','GET').then(function(d){ return d && d.email ? d : null; }).catch(function(){ return null; });
+  },
+  reserveUsername: function(username, email) {
+    return fbFetch('/usernames/'+username.toLowerCase()+'.json','PUT',{email:email}).catch(function(){});
+  },
+  releaseUsername: function(username) {
+    return fbFetch('/usernames/'+username.toLowerCase()+'.json','DELETE').catch(function(){});
+  },
+  // Update user profile (bio, avatar, username, theme)
+  updateProfile: function(email, data) {
+    var key = emailToKey(email);
+    return fbFetch('/users/'+key+'.json','PATCH', data).catch(function(e){ console.error('updateProfile',e); });
+  },
+  // Register with username
+  registerUser: function(name, email, password, username) {
+    var key = emailToKey(email);
+    var user = { name: name, email: email, username: username||'', passwordHash: simpleHash(password), createdAt: Date.now(), bio:'', theme:'dark' };
+    return fbFetch('/users/'+key+'.json', 'PUT', user).then(function(){ return user; }).catch(function(e){ console.error('registerUser',e); return null; });
   }
 };
 window._fbReady = true;
@@ -124,13 +172,83 @@ window._fbReady = true;
   --grn:#22c55e;--grnd:#0f2e1a;
   --red:#ef4444;--redd:#2e0f0f;
   --r:10px;
+  --nav-bg:rgba(12,14,20,0.95);
 }
-body{background:var(--bg);color:var(--txt);font-family:Inter,sans-serif;font-size:14px;line-height:1.5}
+body.theme-light{
+  --bg:#f0f2f8;--surf:#ffffff;--surf2:#e8eaf2;--surf3:#dde0ee;
+  --bord:#d0d4e8;--bord2:#bbbfd6;
+  --txt:#1a1d2e;--muted:#5a5f7a;--sub:#8a8fa8;
+  --accd:#dde2ff;--goldd:#fff0cc;--grnd:#d4f5e2;--redd:#fdd;
+  --nav-bg:rgba(240,242,248,0.95);
+}
+body.theme-light .nav{background:var(--nav-bg)}
+body.theme-light .card{background:var(--surf)}
+body.theme-light ::-webkit-scrollbar-track{background:var(--surf2)}
+body{background:var(--bg);color:var(--txt);font-family:Inter,sans-serif;font-size:14px;line-height:1.5;transition:background .3s,color .3s}
 ::-webkit-scrollbar{width:5px}
 ::-webkit-scrollbar-track{background:var(--surf)}
 ::-webkit-scrollbar-thumb{background:var(--bord2);border-radius:3px}
 
-.nav{background:rgba(12,14,20,0.95);backdrop-filter:blur(16px);border-bottom:1px solid var(--bord);padding:0 28px;display:flex;align-items:center;gap:20px;height:56px;position:sticky;top:0;z-index:100}
+/* ===== SETTINGS PANEL ===== */
+.settings-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:850;backdrop-filter:blur(10px);align-items:flex-end;justify-content:center}
+.settings-ov.open{display:flex}
+@media(min-width:600px){.settings-ov{align-items:center}}
+.settings-box{background:var(--surf);border:1px solid var(--bord);border-radius:20px 20px 0 0;width:100%;max-width:520px;max-height:92vh;overflow-y:auto;animation:settingsIn .35s cubic-bezier(.22,1,.36,1);position:relative}
+@media(min-width:600px){.settings-box{border-radius:20px;max-height:88vh}}
+@keyframes settingsIn{from{transform:translateY(30px);opacity:0}to{transform:translateY(0);opacity:1}}
+.settings-header{display:flex;align-items:center;justify-content:space-between;padding:20px 22px 16px;border-bottom:1px solid var(--bord);position:sticky;top:0;background:var(--surf);z-index:2;border-radius:20px 20px 0 0}
+@media(min-width:600px){.settings-header{border-radius:20px 20px 0 0}}
+.settings-title{font-size:16px;font-weight:700;color:var(--txt);display:flex;align-items:center;gap:9px}
+.settings-close{background:var(--surf2);border:1px solid var(--bord);color:var(--muted);width:30px;height:30px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .15s}
+.settings-close:hover{color:var(--txt);border-color:var(--bord2)}
+.settings-body{padding:20px 22px 32px;display:flex;flex-direction:column;gap:24px}
+.sett-section{display:flex;flex-direction:column;gap:12px}
+.sett-label{font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.6px;margin-bottom:2px}
+
+/* Avatar picker */
+.avatar-picker{display:flex;align-items:center;gap:16px}
+.avatar-preview{width:72px;height:72px;border-radius:50%;border:3px solid var(--acc);object-fit:cover;background:linear-gradient(135deg,var(--acc),var(--acch));display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;color:#fff;flex-shrink:0;overflow:hidden;cursor:pointer;position:relative}
+.avatar-preview img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.avatar-preview-inner{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,var(--acc),var(--acch));display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;color:#fff}
+.avatar-upload-overlay{position:absolute;inset:0;background:rgba(0,0,0,.5);border-radius:50%;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s;cursor:pointer}
+.avatar-preview:hover .avatar-upload-overlay{opacity:1}
+.avatar-info{flex:1}
+.avatar-info p{font-size:12px;color:var(--muted);margin-bottom:8px;line-height:1.5}
+.avatar-upload-btn{background:var(--surf2);border:1px solid var(--bord);color:var(--txt);padding:7px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;display:inline-flex;align-items:center;gap:6px}
+.avatar-upload-btn:hover{border-color:var(--acc);color:var(--acc)}
+
+/* Form fields inside settings */
+.sett-input{width:100%;padding:10px 13px;background:var(--surf2);border:1px solid var(--bord);border-radius:9px;font-size:13px;font-family:inherit;color:var(--txt);outline:none;transition:border-color .15s}
+.sett-input:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(91,110,245,.12)}
+.sett-input.err{border-color:var(--red)}
+.sett-errmsg{font-size:11px;color:var(--red);margin-top:4px;display:none}
+.sett-errmsg.show{display:block}
+.sett-hint{font-size:11px;color:var(--sub);margin-top:4px}
+.sett-textarea{width:100%;padding:10px 13px;background:var(--surf2);border:1px solid var(--bord);border-radius:9px;font-size:13px;font-family:inherit;color:var(--txt);outline:none;transition:border-color .15s;resize:none;min-height:76px}
+.sett-textarea:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(91,110,245,.12)}
+
+/* Theme selector */
+.theme-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.theme-opt{border:2px solid var(--bord);border-radius:12px;padding:14px 12px;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:10px}
+.theme-opt:hover{border-color:var(--bord2)}
+.theme-opt.on{border-color:var(--acc);background:var(--accd)}
+.theme-opt-preview{width:32px;height:32px;border-radius:8px;flex-shrink:0}
+.theme-dark-prev{background:linear-gradient(135deg,#0c0e14,#1a1d28)}
+.theme-light-prev{background:linear-gradient(135deg,#f0f2f8,#e8eaf2);border:1px solid #d0d4e8}
+.theme-opt-label{font-size:13px;font-weight:600;color:var(--txt)}
+.theme-opt-sub{font-size:11px;color:var(--muted)}
+
+/* Save button */
+.sett-save-btn{background:linear-gradient(135deg,var(--acc),var(--acch));color:#fff;border:none;padding:13px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 12px rgba(91,110,245,.3);width:100%}
+.sett-save-btn:hover{opacity:.9;transform:translateY(-1px)}
+.sett-save-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.sett-ok{background:var(--grnd);border:1px solid rgba(34,197,94,.3);color:var(--grn);border-radius:8px;padding:10px 13px;font-size:12px;margin-top:4px;display:none;text-align:center}
+.sett-ok.show{display:block}
+
+/* Username badge in nav */
+.user-dd-username{font-size:11px;color:var(--acc);padding:0 10px 3px;font-weight:600}
+
+.nav{background:var(--nav-bg);backdrop-filter:blur(16px);border-bottom:1px solid var(--bord);padding:0 28px;display:flex;align-items:center;gap:20px;height:56px;position:sticky;top:0;z-index:100;transition:background .3s}
 .logo{color:#fff;font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px}
 .logo-mark{width:28px;height:28px;background:linear-gradient(135deg,var(--acc),var(--acch));border-radius:7px;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:13px}
 .nav-links{display:flex;gap:2px;margin-left:12px}
@@ -515,6 +633,35 @@ footer a{color:var(--muted);text-decoration:none}
 .hist-b-done{background:var(--grnd);color:var(--grn);border:1px solid rgba(34,197,94,.25)}
 .hist-pay{font-size:11px;color:var(--muted);margin-top:6px}
 
+/* ===== ADMIN REVIEW MANAGEMENT ===== */
+.admin-review-section{margin-top:32px;padding-top:28px;border-top:1px solid var(--bord)}
+.admin-review-title{font-size:16px;font-weight:700;color:#fff;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.admin-review-sub{font-size:12px;color:var(--muted);margin-bottom:18px}
+.admin-rev-tabs{display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap}
+.admin-rev-tab{background:var(--surf2);border:1px solid var(--bord);color:var(--muted);padding:5px 14px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;transition:all .15s}
+.admin-rev-tab.on{background:var(--accd);border-color:var(--acc);color:var(--acch);font-weight:700}
+.admin-rev-list{display:flex;flex-direction:column;gap:12px}
+.admin-rev-card{background:var(--surf2);border:1px solid var(--bord);border-radius:12px;padding:16px;transition:border-color .2s}
+.admin-rev-card:hover{border-color:var(--bord2)}
+.admin-rev-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px;gap:10px}
+.admin-rev-info{flex:1}
+.admin-rev-name{font-size:13px;font-weight:700;color:#fff;display:flex;align-items:center;gap:6px;margin-bottom:3px}
+.admin-rev-meta{font-size:11px;color:var(--sub)}
+.admin-rev-stars{font-size:12px;color:var(--gold);letter-spacing:1px;margin-bottom:6px}
+.admin-rev-text{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:12px}
+.admin-rev-actions{display:flex;gap:8px;flex-wrap:wrap}
+.admin-rev-reply-box{margin-top:10px;display:none}
+.admin-rev-reply-box.open{display:block}
+.admin-rev-reply-inp{width:100%;padding:9px 13px;background:var(--surf);border:1px solid var(--bord);border-radius:8px;font-size:12px;font-family:inherit;color:var(--txt);outline:none;resize:none;min-height:72px;transition:border-color .15s;margin-bottom:8px}
+.admin-rev-reply-inp:focus{border-color:var(--acc)}
+.admin-rev-reply-actions{display:flex;gap:8px}
+.admin-rev-existing-reply{background:linear-gradient(135deg,var(--accd),rgba(30,35,71,.8));border:1px solid var(--acc);border-radius:8px;padding:10px 13px;margin-top:10px}
+.admin-rev-existing-reply-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--acch);margin-bottom:5px;display:flex;align-items:center;gap:5px}
+.admin-rev-existing-reply-text{font-size:12px;color:var(--txt);line-height:1.6}
+.abtn.a-reply{background:var(--accd);color:var(--acch);border-color:rgba(91,110,245,.3)}
+.abtn.a-reply:hover{background:rgba(91,110,245,.2)}
+.st-logo-wrap{text-align:center;margin-bottom:16px}
+.st-logo-icon{width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,var(--acc),var(--acch));display:inline-flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 4px 16px rgba(91,110,245,.4)}
 /* ===== DELETE CONFIRM MODAL ===== */
 .del-modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:900;backdrop-filter:blur(8px);align-items:center;justify-content:center}
 .del-modal-ov.open{display:flex}
@@ -563,15 +710,92 @@ footer a{color:var(--muted);text-decoration:none}
     </div>
     <div class="auth-msg-ok" id="authMsgOk"></div>
     <div id="authFormSignin">
-      <div class="auth-field"><label>E-mel</label><input type="email" id="siEmail" placeholder="contoh@email.com"><div class="auth-errmsg" id="siEmailErr"></div></div>
+      <div class="auth-field"><label>Gmail</label><input type="email" id="siEmail" placeholder="contoh@gmail.com"><div class="auth-errmsg" id="siEmailErr"></div></div>
       <div class="auth-field"><label>Kata Laluan</label><input type="password" id="siPw" placeholder="••••••••" onkeydown="if(event.key==='Enter')doSignIn()"><div class="auth-errmsg" id="siPwErr"></div></div>
       <button class="auth-submit" id="siBtn" onclick="doSignIn()"><i class="ti ti-login" style="font-size:14px"></i> Log Masuk</button>
     </div>
     <div id="authFormSignup" style="display:none">
       <div class="auth-field"><label>Nama Penuh</label><input type="text" id="suName" placeholder="Nama anda"><div class="auth-errmsg" id="suNameErr"></div></div>
-      <div class="auth-field"><label>E-mel</label><input type="email" id="suEmail" placeholder="contoh@email.com"><div class="auth-errmsg" id="suEmailErr"></div></div>
+      <div class="auth-field"><label>Username</label><input type="text" id="suUsername" placeholder="contoh: adam_pilot" oninput="this.value=this.value.replace(/[^a-zA-Z0-9_]/g,'').toLowerCase()"><div class="auth-errmsg" id="suUsernameErr"></div><div style="font-size:11px;color:var(--sub);margin-top:3px">Huruf kecil, nombor, dan _ sahaja. Min. 3 aksara.</div></div>
+      <div class="auth-field"><label>Gmail</label><input type="email" id="suEmail" placeholder="contoh@gmail.com"><div class="auth-errmsg" id="suEmailErr"></div></div>
       <div class="auth-field"><label>Kata Laluan</label><input type="password" id="suPw" placeholder="Min. 6 aksara" onkeydown="if(event.key==='Enter')doSignUp()"><div class="auth-errmsg" id="suPwErr"></div></div>
       <button class="auth-submit" id="suBtn" onclick="doSignUp()"><i class="ti ti-user-plus" style="font-size:14px"></i> Daftar Akaun</button>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS PANEL -->
+<div class="settings-ov" id="settingsOv" onclick="if(event.target===this)closeSettings()">
+  <div class="settings-box" id="settingsBox">
+    <div class="settings-header">
+      <div class="settings-title"><i class="ti ti-settings" style="font-size:17px;color:var(--acc)"></i> Tetapan Profil</div>
+      <button class="settings-close" onclick="closeSettings()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="settings-body">
+
+      <!-- AVATAR -->
+      <div class="sett-section">
+        <div class="sett-label">Gambar Profil</div>
+        <div class="avatar-picker">
+          <div class="avatar-preview" onclick="document.getElementById('avatarFileInput').click()">
+            <div class="avatar-preview-inner" id="settAvatarDisplay"></div>
+            <div class="avatar-upload-overlay"><i class="ti ti-camera" style="font-size:18px;color:#fff"></i></div>
+          </div>
+          <div class="avatar-info">
+            <p>Klik gambar profil atau butang di bawah untuk muat naik gambar. Gambar akan disimpan dalam akaun anda.</p>
+            <button class="avatar-upload-btn" onclick="document.getElementById('avatarFileInput').click()"><i class="ti ti-upload" style="font-size:12px"></i> Pilih Gambar</button>
+            <input type="file" id="avatarFileInput" accept="image/*" style="display:none" onchange="handleAvatarUpload(event)">
+          </div>
+        </div>
+      </div>
+
+      <!-- USERNAME -->
+      <div class="sett-section">
+        <div class="sett-label">Username</div>
+        <div style="position:relative">
+          <span style="position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px">@</span>
+          <input class="sett-input" id="settUsername" type="text" placeholder="username_anda" style="padding-left:28px" oninput="this.value=this.value.replace(/[^a-zA-Z0-9_]/g,'').toLowerCase()">
+        </div>
+        <div class="sett-errmsg" id="settUsernameErr"></div>
+        <div class="sett-hint">Huruf kecil, nombor, dan _ sahaja. Min. 3 aksara.</div>
+      </div>
+
+      <!-- NAMA PENUH -->
+      <div class="sett-section">
+        <div class="sett-label">Nama Penuh</div>
+        <input class="sett-input" id="settName" type="text" placeholder="Nama penuh anda">
+      </div>
+
+      <!-- BIO -->
+      <div class="sett-section">
+        <div class="sett-label">Bio</div>
+        <textarea class="sett-textarea" id="settBio" placeholder="Cerita sikit pasal diri anda... (contoh: MSFS enthusiast dari Sabah ✈️)" maxlength="160"></textarea>
+        <div class="sett-hint" id="settBioCount">0 / 160 aksara</div>
+      </div>
+
+      <!-- THEME -->
+      <div class="sett-section">
+        <div class="sett-label">Tema Warna</div>
+        <div class="theme-grid">
+          <div class="theme-opt on" id="themeOptDark" onclick="previewTheme('dark')">
+            <div class="theme-opt-preview theme-dark-prev"></div>
+            <div>
+              <div class="theme-opt-label">🌙 Dark</div>
+              <div class="theme-opt-sub">Gelap & premium</div>
+            </div>
+          </div>
+          <div class="theme-opt" id="themeOptLight" onclick="previewTheme('light')">
+            <div class="theme-opt-preview theme-light-prev"></div>
+            <div>
+              <div class="theme-opt-label">☀️ Light</div>
+              <div class="theme-opt-sub">Cerah & bersih</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sett-ok" id="settOk">✓ Profil berjaya dikemaskini!</div>
+      <button class="sett-save-btn" id="settSaveBtn" onclick="saveSettings()"><i class="ti ti-device-floppy" style="font-size:15px"></i> Simpan Perubahan</button>
     </div>
   </div>
 </div>
@@ -612,10 +836,20 @@ footer a{color:var(--muted);text-decoration:none}
     <button class="lang-btn" id="btnEN" onclick="setLang('en')">EN</button>
     <button class="staff-btn" onclick="openStaff()"><i class="ti ti-lock" style="font-size:11px"></i> Staff</button>
     <div class="user-nav-wrap" id="userNavWrap" style="display:none">
-      <button class="user-avatar-btn" id="userAvatarBtn" onclick="toggleUserDropdown()"></button>
+      <button class="user-avatar-btn" id="userAvatarBtn" onclick="toggleUserDropdown()">
+        <img id="navAvatarImg" src="" alt="" style="display:none;width:32px;height:32px;border-radius:8px;object-fit:cover">
+        <span id="navAvatarInitial"></span>
+      </button>
       <div class="user-dropdown" id="userDropdown">
-        <div class="user-dd-name" id="ddName"></div>
-        <div class="user-dd-email" id="ddEmail"></div>
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 10px 4px">
+          <div id="ddAvatarMini" style="width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,var(--acc),var(--acch));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;flex-shrink:0;overflow:hidden"></div>
+          <div style="min-width:0;flex:1">
+            <div class="user-dd-name" id="ddName"></div>
+            <div class="user-dd-username" id="ddUsername"></div>
+          </div>
+        </div>
+        <div class="user-dd-email" id="ddEmail" style="padding:0 10px 10px;border-bottom:1px solid var(--bord);margin-bottom:6px"></div>
+        <button class="user-dd-item" onclick="openSettings();closeUserDropdown()"><i class="ti ti-settings" style="font-size:13px"></i> Tetapan Profil</button>
         <button class="user-dd-item" onclick="showHistory();closeUserDropdown()"><i class="ti ti-receipt" style="font-size:13px"></i> Pesanan Saya</button>
         <button class="user-dd-item danger" onclick="doLogout();closeUserDropdown()"><i class="ti ti-logout" style="font-size:13px"></i> Log Keluar</button>
       </div>
@@ -849,14 +1083,19 @@ footer a{color:var(--muted);text-decoration:none}
 <!-- STAFF LOGIN -->
 <div class="st-overlay" id="stOverlay">
   <div class="st-box">
-    <h2>Staff Access</h2>
-    <p id="stDesc">Masukkan kata laluan untuk akses panel pentadbir.</p>
+    <div class="st-logo-wrap"><div class="st-logo-icon"><i class="ti ti-shield-lock" style="font-size:22px"></i></div></div>
+    <h2>Admin Access</h2>
+    <p id="stDesc">Masukkan e-mel dan kata laluan admin untuk akses panel pentadbir.</p>
+    <div class="st-field">
+      <label>E-mel Admin</label>
+      <input type="email" id="stEmail" placeholder="admin@adamsstore.co" onkeydown="if(event.key==='Enter')doStaffLogin()">
+    </div>
     <div class="st-field">
       <label>Kata Laluan</label>
       <input type="password" id="stPw" placeholder="••••••••" onkeydown="if(event.key==='Enter')doStaffLogin()">
     </div>
-    <button class="st-login-btn" onclick="doStaffLogin()">Log Masuk</button>
-    <div class="st-err" id="stErr">Kata laluan salah. Cuba sekali lagi.</div>
+    <button class="st-login-btn" onclick="doStaffLogin()"><i class="ti ti-login" style="font-size:14px"></i> Log Masuk sebagai Admin</button>
+    <div class="st-err" id="stErr">E-mel atau kata laluan salah. Cuba sekali lagi.</div>
     <button class="st-cancel" onclick="closeStaff()">Batal</button>
   </div>
 </div>
@@ -864,7 +1103,7 @@ footer a{color:var(--muted);text-decoration:none}
 <!-- DASHBOARD -->
 <div class="dash" id="pageDash">
   <div class="dash-nav">
-    <div class="dash-logo"><div class="logo-mark">A</div>Adam's Store <span class="dash-badge">Staff Panel</span></div>
+    <div class="dash-logo"><div class="logo-mark">A</div>Adam's Store <span class="dash-badge">Admin Panel</span></div>
     <button class="dash-out" onclick="logoutStaff()"><i class="ti ti-logout" style="font-size:12px"></i> Log Keluar</button>
   </div>
   <div class="dash-body">
@@ -876,6 +1115,16 @@ footer a{color:var(--muted);text-decoration:none}
       <button class="clr-btn" onclick="clearOrders()" id="clrBtn">Padam Semua</button>
     </div>
     <div id="ordersList"></div>
+
+    <!-- ADMIN REVIEW MANAGEMENT -->
+    <div class="admin-review-section">
+      <div class="admin-review-title"><i class="ti ti-message-star" style="font-size:16px;color:var(--gold)"></i> Urus Review Pelanggan</div>
+      <div class="admin-review-sub">Balas atau padam review yang ditinggalkan oleh pelanggan pada setiap produk.</div>
+      <div class="admin-rev-tabs" id="adminRevTabs">
+        <button class="admin-rev-tab on" onclick="adminLoadReviews('all',this)">Semua Review</button>
+      </div>
+      <div class="admin-rev-list" id="adminRevList"><div class="no-orders">Klik tab produk untuk lihat review.</div></div>
+    </div>
   </div>
 </div>
 
@@ -890,6 +1139,7 @@ footer a{color:var(--muted);text-decoration:none}
 <script>
 var EJSKEY='kPywVn2MxIg0TSczz', EJSSVC='service_qe4dy2h', EJSTPL='template_gmcvrhd';
 var STAFFPW='ilovetawau';
+var ADMINEMAIL='admin@adamsstore.co';
 var PRODS=[
   {
     id:1,
@@ -1197,12 +1447,16 @@ function loadReviews(prodId){
     listEl.innerHTML=reviews.map(function(r){
       var filled='★'.repeat(r.stars)+'☆'.repeat(5-r.stars);
       var initial=r.name.charAt(0).toUpperCase();
+      var adminReplyHtml = r.adminReply
+        ? '<div style="margin-top:10px;background:linear-gradient(135deg,var(--accd),rgba(30,35,71,.7));border:1px solid var(--acc);border-radius:8px;padding:9px 12px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--acch);margin-bottom:4px;display:flex;align-items:center;gap:5px"><i class=\"ti ti-shield-check\" style=\"font-size:11px\"></i> Balasan Admin</div><div style="font-size:12px;color:var(--txt);line-height:1.6">'+r.adminReply+'</div></div>'
+        : '';
       return '<div class="review-card">'+
         '<div class="review-card-top">'+
           '<div class="review-card-name" style="gap:8px"><span style="width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--acc),var(--acch));display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0">'+initial+'</span>'+r.name+'</div>'+
           '<div class="review-card-stars">'+filled+'</div>'+
         '</div>'+
         '<div class="review-card-text">'+r.text+'</div>'+
+        adminReplyHtml+
         '<div class="review-card-date"><i class="ti ti-clock" style="font-size:10px"></i> '+r.date+'</div>'+
       '</div>';
     }).join('');
@@ -1419,10 +1673,12 @@ function finishOrder(order,name,email,payLbl,total,btn){
   },600);
 }
 
-function openStaff(){document.getElementById('stOverlay').classList.add('open');setTimeout(function(){document.getElementById('stPw').focus();},100);}
-function closeStaff(){document.getElementById('stOverlay').classList.remove('open');document.getElementById('stPw').value='';document.getElementById('stErr').classList.remove('show');}
+function openStaff(){document.getElementById('stOverlay').classList.add('open');setTimeout(function(){document.getElementById('stEmail').focus();},100);}
+function closeStaff(){document.getElementById('stOverlay').classList.remove('open');document.getElementById('stPw').value='';document.getElementById('stEmail').value='';document.getElementById('stErr').classList.remove('show');}
 function doStaffLogin(){
-  if(document.getElementById('stPw').value===STAFFPW){closeStaff();showDash();}
+  var email=(document.getElementById('stEmail').value||'').trim().toLowerCase();
+  var pw=document.getElementById('stPw').value;
+  if(email===ADMINEMAIL && pw===STAFFPW){closeStaff();showDash();}
   else document.getElementById('stErr').classList.add('show');
 }
 function logoutStaff(){
@@ -1434,6 +1690,8 @@ function showDash(){
   document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
   document.getElementById('mainNav').style.display='none';
   document.getElementById('pageDash').classList.add('active');
+  adminInitTabs();
+  adminLoadReviews('all', document.querySelector('.admin-rev-tab'));
   renderDash();
 }
 function renderDash(){
@@ -1546,6 +1804,97 @@ function toast(msg){
   setTimeout(function(){el.classList.remove('show');},2600);
 }
 
+// ===== ADMIN REVIEW MANAGEMENT =====
+var _adminRevProdId = 'all';
+
+function adminInitTabs(){
+  var tabsEl = document.getElementById('adminRevTabs');
+  var tabs = '<button class="admin-rev-tab on" onclick="adminLoadReviews(\'all\',this)">Semua Review</button>';
+  PRODS.forEach(function(p){
+    tabs += '<button class="admin-rev-tab" onclick="adminLoadReviews(\''+p.id+'\',this)">'+p.name+'</button>';
+  });
+  tabsEl.innerHTML = tabs;
+}
+
+function adminLoadReviews(prodId, btn){
+  _adminRevProdId = prodId;
+  document.querySelectorAll('.admin-rev-tab').forEach(function(t){ t.classList.remove('on'); });
+  if(btn) btn.classList.add('on');
+  var listEl = document.getElementById('adminRevList');
+  listEl.innerHTML = '<div class="no-orders">Memuatkan review...</div>';
+
+  var promise = (prodId === 'all') ? window._fb.getAllReviews() : window._fb.getReviews(prodId);
+  promise.then(function(reviews){
+    if(!reviews.length){
+      listEl.innerHTML = '<div class="no-orders">Tiada review untuk produk ini.</div>';
+      return;
+    }
+    listEl.innerHTML = reviews.map(function(r){
+      var filled = '★'.repeat(r.stars)+'☆'.repeat(5-r.stars);
+      var initial = (r.name||'?').charAt(0).toUpperCase();
+      var pid = r._prodId || prodId;
+      var prodName = (PRODS.find(function(p){ return String(p.id)===String(pid); })||{}).name || ('Produk '+pid);
+      var replyHtml = r.adminReply
+        ? '<div class="admin-rev-existing-reply"><div class="admin-rev-existing-reply-lbl"><i class="ti ti-shield-check" style="font-size:11px"></i> Balasan Admin ('+r.adminReplyAt+')</div><div class="admin-rev-existing-reply-text">'+r.adminReply+'</div></div>'
+        : '';
+      return '<div class="admin-rev-card" id="arev-'+r._key+'">'+
+        '<div class="admin-rev-top">'+
+          '<div class="admin-rev-info">'+
+            '<div class="admin-rev-name"><span style="width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,var(--acc),var(--acch));display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0">'+initial+'</span>'+r.name+'</div>'+
+            '<div class="admin-rev-meta">'+prodName+' · '+r.date+'</div>'+
+          '</div>'+
+          '<div class="admin-rev-stars">'+filled+'</div>'+
+        '</div>'+
+        '<div class="admin-rev-text">'+r.text+'</div>'+
+        replyHtml+
+        '<div class="admin-rev-reply-box" id="replybox-'+r._key+'">'+
+          '<textarea class="admin-rev-reply-inp" id="replyinp-'+r._key+'" placeholder="Tulis balasan admin di sini...">'+(r.adminReply||'')+'</textarea>'+
+          '<div class="admin-rev-reply-actions">'+
+            '<button class="abtn a-done" onclick="adminSubmitReply(\''+pid+'\',\''+r._key+'\')"><i class="ti ti-send" style="font-size:11px"></i> Simpan Balasan</button>'+
+            '<button class="abtn" style="background:var(--surf3);color:var(--muted);border-color:var(--bord)" onclick="adminToggleReplyBox(\''+r._key+'\')">Batal</button>'+
+          '</div>'+
+        '</div>'+
+        '<div class="admin-rev-actions">'+
+          '<button class="abtn a-reply" onclick="adminToggleReplyBox(\''+r._key+'\')"><i class="ti ti-message-reply" style="font-size:11px"></i> '+(r.adminReply?'Edit Balasan':'Balas')+'</button>'+
+          '<button class="abtn a-del" onclick="adminDeleteReview(\''+pid+'\',\''+r._key+'\')"><i class="ti ti-trash" style="font-size:11px"></i> Padam Review</button>'+
+        '</div>'+
+      '</div>';
+    }).join('');
+  }).catch(function(){
+    listEl.innerHTML = '<div class="no-orders" style="color:var(--red)">Gagal muatkan review.</div>';
+  });
+}
+
+function adminToggleReplyBox(key){
+  var box = document.getElementById('replybox-'+key);
+  if(box){
+    box.classList.toggle('open');
+    if(box.classList.contains('open')){
+      var inp = document.getElementById('replyinp-'+key);
+      if(inp) inp.focus();
+    }
+  }
+}
+
+function adminSubmitReply(prodId, reviewKey){
+  var inp = document.getElementById('replyinp-'+reviewKey);
+  if(!inp) return;
+  var text = inp.value.trim();
+  if(!text){ toast('Sila tulis balasan terlebih dahulu.'); return; }
+  window._fb.replyReview(prodId, reviewKey, text).then(function(){
+    toast('Balasan berjaya disimpan! ✓');
+    adminLoadReviews(_adminRevProdId, document.querySelector('.admin-rev-tab.on'));
+  }).catch(function(){ toast('Gagal simpan balasan. Cuba lagi.'); });
+}
+
+function adminDeleteReview(prodId, reviewKey){
+  if(!confirm('Padam review ini secara kekal?')) return;
+  window._fb.deleteReview(prodId, reviewKey).then(function(){
+    toast('Review berjaya dipadamkan.');
+    adminLoadReviews(_adminRevProdId, document.querySelector('.admin-rev-tab.on'));
+  }).catch(function(){ toast('Gagal padam review.'); });
+}
+
 // ===== SESSION =====
 var currentUser = null;
 
@@ -1574,8 +1923,29 @@ function updateNavUser(){
     wrap.style.display = 'flex';
     loginBtn.style.display = 'none';
     var initial = (currentUser.name||'U').charAt(0).toUpperCase();
-    avatarBtn.textContent = initial;
+    var avatarImg = document.getElementById('navAvatarImg');
+    var avatarInitial = document.getElementById('navAvatarInitial');
+    if(currentUser.avatar){
+      avatarImg.src = currentUser.avatar;
+      avatarImg.style.display = 'block';
+      avatarInitial.style.display = 'none';
+    } else {
+      avatarImg.style.display = 'none';
+      avatarInitial.style.display = 'block';
+      avatarInitial.textContent = initial;
+    }
+    // Mini avatar in dropdown
+    var mini = document.getElementById('ddAvatarMini');
+    if(mini){
+      if(currentUser.avatar){
+        mini.innerHTML = '<img src="'+currentUser.avatar+'" style="width:38px;height:38px;object-fit:cover;border-radius:10px">';
+      } else {
+        mini.textContent = initial;
+      }
+    }
     document.getElementById('ddName').textContent = currentUser.name||'';
+    var ddU = document.getElementById('ddUsername');
+    if(ddU) ddU.textContent = currentUser.username ? '@'+currentUser.username : '';
     document.getElementById('ddEmail').textContent = currentUser.email||'';
   } else {
     wrap.style.display = 'none';
@@ -1632,11 +2002,11 @@ function switchAuthTab(tab){
 }
 
 function clearAuthErrors(){
-  ['siEmailErr','siPwErr','suNameErr','suEmailErr','suPwErr'].forEach(function(id){
+  ['siEmailErr','siPwErr','suNameErr','suUsernameErr','suEmailErr','suPwErr'].forEach(function(id){
     var el = document.getElementById(id);
     if(el){ el.textContent=''; el.classList.remove('show'); }
   });
-  ['siEmail','siPw','suName','suEmail','suPw'].forEach(function(id){
+  ['siEmail','siPw','suName','suUsername','suEmail','suPw'].forEach(function(id){
     var el = document.getElementById(id);
     if(el) el.classList.remove('err');
   });
@@ -1652,10 +2022,10 @@ function showAuthErr(id, msg){
 
 function doSignIn(){
   clearAuthErrors();
-  var email = document.getElementById('siEmail').value.trim();
+  var email = document.getElementById('siEmail').value.trim().toLowerCase();
   var pw = document.getElementById('siPw').value;
-  if(!email){ showAuthErr('siEmailErr','Sila masukkan e-mel.'); return; }
-  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ showAuthErr('siEmailErr','E-mel tidak sah.'); return; }
+  if(!email){ showAuthErr('siEmailErr','Sila masukkan Gmail anda.'); return; }
+  if(!/@gmail\.com$/.test(email)){ showAuthErr('siEmailErr','Sila masukkan Gmail yang sah (contoh@gmail.com).'); return; }
   if(!pw){ showAuthErr('siPwErr','Sila masukkan kata laluan.'); return; }
   var btn = document.getElementById('siBtn');
   btn.disabled=true; btn.innerHTML='<i class="ti ti-loader"></i> Memeriksa...';
@@ -1663,8 +2033,9 @@ function doSignIn(){
     btn.disabled=false; btn.innerHTML='<i class="ti ti-login" style="font-size:14px"></i> Log Masuk';
     if(res.success){
       saveSession(res.user);
+      applyTheme(res.user.theme||'dark');
       var ok = document.getElementById('authMsgOk');
-      ok.textContent = 'Selamat datang, '+res.user.name+'! ✓';
+      ok.textContent = 'Selamat datang, '+(res.user.username?'@'+res.user.username:res.user.name)+'! ✓';
       ok.classList.add('show');
       setTimeout(function(){
         closeAuth();
@@ -1684,40 +2055,56 @@ function doSignIn(){
 function doSignUp(){
   clearAuthErrors();
   var name = document.getElementById('suName').value.trim();
-  var email = document.getElementById('suEmail').value.trim();
+  var username = (document.getElementById('suUsername').value||'').trim().toLowerCase();
+  var email = document.getElementById('suEmail').value.trim().toLowerCase();
   var pw = document.getElementById('suPw').value;
   if(!name){ showAuthErr('suNameErr','Sila masukkan nama penuh.'); return; }
-  if(!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ showAuthErr('suEmailErr','E-mel tidak sah.'); return; }
+  if(!username||username.length<3){ showAuthErr('suUsernameErr','Username sekurang-kurangnya 3 aksara.'); return; }
+  if(!/^[a-z0-9_]+$/.test(username)){ showAuthErr('suUsernameErr','Hanya huruf kecil, nombor dan _ dibenarkan.'); return; }
+  if(!email||!/@gmail\.com$/.test(email)){ showAuthErr('suEmailErr','Sila masukkan Gmail yang sah (contoh@gmail.com).'); return; }
   if(!pw||pw.length<6){ showAuthErr('suPwErr','Kata laluan sekurang-kurangnya 6 aksara.'); return; }
   var btn = document.getElementById('suBtn');
-  btn.disabled=true; btn.innerHTML='<i class="ti ti-loader"></i> Mendaftar...';
-  window._fb.checkUser(email).then(function(existing){
-    if(existing){
+  btn.disabled=true; btn.innerHTML='<i class="ti ti-loader"></i> Memeriksa...';
+  // Check username taken first
+  window._fb.checkUsername(username).then(function(taken){
+    if(taken){ 
       btn.disabled=false; btn.innerHTML='<i class="ti ti-user-plus" style="font-size:14px"></i> Daftar Akaun';
-      showAuthErr('suEmailErr','E-mel ini sudah berdaftar. Log masuk?');
-      return;
+      showAuthErr('suUsernameErr','Username ini sudah digunakan. Cuba yang lain.'); 
+      return; 
     }
-    return window._fb.registerUser(name, email, pw).then(function(user){
-      btn.disabled=false; btn.innerHTML='<i class="ti ti-user-plus" style="font-size:14px"></i> Daftar Akaun';
-      if(user){
-        saveSession(user);
-        var ok = document.getElementById('authMsgOk');
-        ok.textContent = 'Akaun berjaya dicipta! Selamat datang, '+name+' ✓';
-        ok.classList.add('show');
-        setTimeout(function(){
-          closeAuth();
-          if(document.getElementById('buyerName')) document.getElementById('buyerName').value = name;
-          if(document.getElementById('buyerEmail')) document.getElementById('buyerEmail').value = email;
-        }, 900);
-      } else {
-        showAuthErr('suEmailErr','Gagal daftar. Cuba semula.');
+    return window._fb.checkUser(email).then(function(existing){
+      if(existing){
+        btn.disabled=false; btn.innerHTML='<i class="ti ti-user-plus" style="font-size:14px"></i> Daftar Akaun';
+        showAuthErr('suEmailErr','E-mel ini sudah berdaftar. Log masuk?');
+        return;
       }
+      return window._fb.registerUser(name, email, pw, username).then(function(user){
+        if(user){
+          // Reserve username
+          window._fb.reserveUsername(username, email);
+          saveSession(user);
+          applyTheme(user.theme||'dark');
+          var ok = document.getElementById('authMsgOk');
+          ok.textContent = 'Akaun berjaya dicipta! Selamat datang, @'+username+' ✓';
+          ok.classList.add('show');
+          setTimeout(function(){
+            btn.disabled=false; btn.innerHTML='<i class="ti ti-user-plus" style="font-size:14px"></i> Daftar Akaun';
+            closeAuth();
+            if(document.getElementById('buyerName')) document.getElementById('buyerName').value = name;
+            if(document.getElementById('buyerEmail')) document.getElementById('buyerEmail').value = email;
+          }, 900);
+        } else {
+          btn.disabled=false; btn.innerHTML='<i class="ti ti-user-plus" style="font-size:14px"></i> Daftar Akaun';
+          showAuthErr('suEmailErr','Gagal daftar. Cuba semula.');
+        }
+      });
     });
   });
 }
 
 function doLogout(){
   clearSession();
+  applyTheme('dark');
   updateNavUser();
   toast('Anda telah log keluar.');
 }
@@ -1759,15 +2146,148 @@ function showHistory(){
   });
 }
 
+// ===== THEME =====
+var _currentTheme = 'dark';
+function applyTheme(theme){
+  _currentTheme = theme || 'dark';
+  document.body.classList.toggle('theme-light', _currentTheme === 'light');
+  document.getElementById('themeOptDark') && document.getElementById('themeOptDark').classList.toggle('on', _currentTheme === 'dark');
+  document.getElementById('themeOptLight') && document.getElementById('themeOptLight').classList.toggle('on', _currentTheme === 'light');
+}
+function previewTheme(theme){
+  applyTheme(theme);
+}
+
+// ===== SETTINGS PANEL =====
+var _settAvatarB64 = null;
+
+function openSettings(){
+  if(!currentUser){ openAuth('signin'); return; }
+  _settAvatarB64 = null;
+  // Fill fields
+  document.getElementById('settName').value = currentUser.name||'';
+  document.getElementById('settUsername').value = currentUser.username||'';
+  var bioEl = document.getElementById('settBio');
+  bioEl.value = currentUser.bio||'';
+  updateBioCount();
+  bioEl.oninput = updateBioCount;
+  // Avatar display
+  renderSettAvatar();
+  // Theme
+  applyTheme(currentUser.theme||'dark');
+  document.getElementById('settOk').classList.remove('show');
+  document.getElementById('settingsOv').classList.add('open');
+}
+
+function updateBioCount(){
+  var bio = document.getElementById('settBio').value;
+  document.getElementById('settBioCount').textContent = bio.length + ' / 160 aksara';
+}
+
+function renderSettAvatar(){
+  var el = document.getElementById('settAvatarDisplay');
+  var src = _settAvatarB64 || (currentUser && currentUser.avatar);
+  var initial = ((currentUser && currentUser.name)||'U').charAt(0).toUpperCase();
+  if(src){
+    el.innerHTML = '<img src="'+src+'" style="width:72px;height:72px;object-fit:cover;border-radius:50%">';
+  } else {
+    el.textContent = initial;
+    el.style.display = 'flex';
+  }
+}
+
+function handleAvatarUpload(event){
+  var file = event.target.files[0];
+  if(!file) return;
+  if(file.size > 3*1024*1024){ toast('Gambar terlalu besar! Maks 3MB.'); return; }
+  var reader = new FileReader();
+  reader.onload = function(ev){
+    _settAvatarB64 = ev.target.result;
+    renderSettAvatar();
+    toast('Gambar dipilih. Tekan Simpan untuk kemaskini.');
+  };
+  reader.readAsDataURL(file);
+  event.target.value = '';
+}
+
+function closeSettings(){
+  document.getElementById('settingsOv').classList.remove('open');
+  // Revert theme preview if not saved
+  applyTheme(currentUser ? (currentUser.theme||'dark') : 'dark');
+}
+
+function saveSettings(){
+  if(!currentUser) return;
+  var newName = document.getElementById('settName').value.trim();
+  var newUsername = document.getElementById('settUsername').value.trim().toLowerCase();
+  var newBio = document.getElementById('settBio').value.trim();
+  var newTheme = _currentTheme;
+
+  // Clear errors
+  document.getElementById('settUsernameErr').textContent='';
+  document.getElementById('settUsernameErr').classList.remove('show');
+
+  if(!newName){ toast('Nama penuh tidak boleh kosong.'); return; }
+  if(!newUsername||newUsername.length<3){ 
+    document.getElementById('settUsernameErr').textContent='Username sekurang-kurangnya 3 aksara.';
+    document.getElementById('settUsernameErr').classList.add('show'); return; 
+  }
+
+  var btn = document.getElementById('settSaveBtn');
+  btn.disabled=true; btn.innerHTML='<i class="ti ti-loader"></i> Menyimpan...';
+
+  var oldUsername = currentUser.username||'';
+  var usernameChanged = newUsername !== oldUsername;
+
+  var proceed = function(){
+    var updates = { name: newName, username: newUsername, bio: newBio, theme: newTheme };
+    if(_settAvatarB64) updates.avatar = _settAvatarB64;
+    window._fb.updateProfile(currentUser.email, updates).then(function(){
+      // Update session
+      Object.assign(currentUser, updates);
+      saveSession(currentUser);
+      applyTheme(newTheme);
+      updateNavUser();
+      btn.disabled=false; btn.innerHTML='<i class="ti ti-device-floppy" style="font-size:15px"></i> Simpan Perubahan';
+      document.getElementById('settOk').classList.add('show');
+      setTimeout(function(){ document.getElementById('settOk').classList.remove('show'); }, 3000);
+      toast('Profil berjaya dikemaskini! ✓');
+    }).catch(function(){
+      btn.disabled=false; btn.innerHTML='<i class="ti ti-device-floppy" style="font-size:15px"></i> Simpan Perubahan';
+      toast('Gagal simpan. Cuba semula.');
+    });
+  };
+
+  if(usernameChanged){
+    // Check if new username taken
+    window._fb.checkUsername(newUsername).then(function(taken){
+      if(taken && taken.email !== currentUser.email){
+        btn.disabled=false; btn.innerHTML='<i class="ti ti-device-floppy" style="font-size:15px"></i> Simpan Perubahan';
+        document.getElementById('settUsernameErr').textContent='Username ini sudah digunakan orang lain.';
+        document.getElementById('settUsernameErr').classList.add('show');
+        return;
+      }
+      // Release old, reserve new
+      if(oldUsername) window._fb.releaseUsername(oldUsername);
+      window._fb.reserveUsername(newUsername, currentUser.email);
+      proceed();
+    });
+  } else {
+    proceed();
+  }
+}
+
 render();
 applyLang();
 loadSession();
 updateNavUser();
 if(currentUser){
+  applyTheme(currentUser.theme||'dark');
   // Already logged in from previous session — skip intro
   var s = document.getElementById('introScreen');
   if(s) s.style.display='none';
 } else {
+  applyTheme('dark');
   // Show intro, hide shop content until dismissed
 }
 // Auto-fill if session exists
