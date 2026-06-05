@@ -2262,6 +2262,7 @@ var PRODS=[
   {
     id:1,
     name:'Fenix A320 Base',
+    slug:'fenix-a320-base',
     cat:'fenix',
     thumb:'ct-fenix',
     image:'https://i.imgur.com/660IDwv.png',
@@ -2275,6 +2276,7 @@ var PRODS=[
   {
     id:2,
     name:'Fenix A320 Family',
+    slug:'fenix-a320-family',
     cat:'fenix',
     thumb:'ct-fenix',
     image:'https://i.imgur.com/rgg0igh.jpeg',
@@ -2288,6 +2290,7 @@ var PRODS=[
   {
     id:3,
     name:'PMDG 737-800',
+    slug:'pmdg-737-800',
     cat:'pmdg',
     thumb:'ct-pmdg',
     image:'https://i.imgur.com/ioD7T4H.jpeg',
@@ -2301,6 +2304,7 @@ var PRODS=[
   {
     id:4,
     name:'GSX Pro',
+    slug:'gsx-pro',
     cat:'gsx',
     thumb:'ct-gsx',
     image:'https://i.imgur.com/0MUhGdj.jpeg',
@@ -2314,6 +2318,7 @@ var PRODS=[
   {
     id:5,
     name:'Navigraph Unlimited',
+    slug:'navigraph-unlimited',
     cat:'navigraph',
     thumb:'ct-nav',
     image:'https://i.imgur.com/sbzIhYn.png',
@@ -2327,6 +2332,7 @@ var PRODS=[
   {
     id:6,
     name:'iniBuilds A350',
+    slug:'inibuilds-a350',
     cat:'inibuilds',
     thumb:'ct-nav',
     image:'https://i.imgur.com/ImmkkHd.jpeg',
@@ -2340,6 +2346,7 @@ var PRODS=[
   {
     id:7,
     name:'BeyondATC',
+    slug:'beyondatc',
     cat:'beyondatc',
     thumb:'ct-nav',
     image:'https://i.imgur.com/c4np8v8.png',
@@ -2353,6 +2360,7 @@ var PRODS=[
   {
     id:8,
     name:'FS2Crew PMDG 777',
+    slug:'fs2crew-pmdg-777',
     cat:'fs2crew',
     thumb:'ct-fs2',
     image:'https://i.imgur.com/ioD7T4H.jpeg',
@@ -2367,6 +2375,7 @@ var PRODS=[
   {
     id:9,
     name:'FS2Crew PMDG 737',
+    slug:'fs2crew-pmdg-737',
     cat:'fs2crew',
     thumb:'ct-fs2',
     image:'https://i.imgur.com/ioD7T4H.jpeg',
@@ -2381,6 +2390,7 @@ var PRODS=[
   {
     id:10,
     name:'FS2Crew Fenix A320',
+    slug:'fs2crew-fenix-a320',
     cat:'fs2crew',
     thumb:'ct-fs2',
     image:'https://i.imgur.com/660IDwv.png',
@@ -2395,6 +2405,7 @@ var PRODS=[
   {
     id:11,
     name:'iFly 737 MAX',
+    slug:'ifly-737-max',
     cat:'ifly',
     thumb:'ct-ifly',
     image:'https://i.imgur.com/rSEy6vO.jpeg',
@@ -2408,6 +2419,7 @@ var PRODS=[
   {
     id:12,
     name:'FSRealistic Pro',
+    slug:'fsrealistic-pro',
     cat:'fsrealistic',
     thumb:'ct-fsr',
     image:'https://i.imgur.com/IPfnbxG.jpeg',
@@ -2421,6 +2433,7 @@ var PRODS=[
   {
     id:13,
     name:'PMDG 737NG Sound',
+    slug:'boris-pmdg-737ng-sound',
     cat:'boris',
     thumb:'ct-boris',
     image:'https://i.imgur.com/1cMPVwV.jpeg',
@@ -2434,6 +2447,7 @@ var PRODS=[
   {
     id:14,
     name:'PMDG 777 Ultimate Sound',
+    slug:'boris-pmdg-777-sound',
     cat:'boris',
     thumb:'ct-boris',
     image:'https://i.imgur.com/NPqcOZO.jpeg',
@@ -4539,6 +4553,140 @@ finishOrder = function(order, name, email, payLbl, total, btn){
 window.addEventListener('resize', function(){
   if(_revChartData && _revChartData.length) drawRevenueChart(_revChartData);
 });
+
+// ===== URL ROUTER =====
+var ROUTES = {
+  '/': function(){ showPage('pageShop'); window.scrollTo(0,0); },
+  '/payment': function(){ if(cart.length>0){ showPage('pageCheckout'); window.scrollTo(0,0); } else { navigateTo('/'); } },
+  '/wishlist': function(){ if(currentUser){ showWishlist(); } else { openAuth('signin'); } },
+  '/history': function(){ if(currentUser){ showHistory(); } else { openAuth('signin'); } },
+  '/signin': function(){ showPage('pageShop'); openAuth('signin'); },
+  '/admin': function(){ openStaff(); },
+};
+
+// Product slugs → route
+PRODS.forEach(function(p){
+  if(p.slug){
+    ROUTES['/'+p.slug] = function(){ showProductDescription(p.id); };
+  }
+});
+
+function getPath(){
+  return window.location.pathname.replace(/\/$/, '') || '/';
+}
+
+function navigateTo(path, push){
+  if(push !== false) history.pushState({path:path}, '', path);
+  var route = ROUTES[path];
+  if(route){ route(); }
+  else { navigateTo('/'); }
+  updateMetaForPath(path);
+}
+
+function updateMetaForPath(path){
+  var base = 'Adam\'s Store — MSFS Add-ons Malaysia';
+  var desc = 'Beli MSFS Add-ons Malaysia dengan harga murah. Fenix A320, PMDG 737, GSX Pro & Navigraph. Penghantaran digital ke e-mel anda.';
+  var title = base;
+
+  if(path === '/'){
+    title = base + ' | Harga Murah & Terbaik';
+  } else if(path === '/payment'){
+    title = 'Pembayaran — ' + base;
+    desc = 'Selesaikan pembelian MSFS Add-on anda di Adam\'s Store. Bayar melalui TNG eWallet.';
+  } else if(path === '/wishlist'){
+    title = 'Wishlist — ' + base;
+    desc = 'Senarai wishlist MSFS Add-ons anda di Adam\'s Store.';
+  } else if(path === '/history'){
+    title = 'Pesanan Saya — ' + base;
+    desc = 'Semak status pesanan MSFS Add-on anda di Adam\'s Store.';
+  } else if(path === '/signin'){
+    title = 'Log Masuk — ' + base;
+    desc = 'Log masuk atau daftar akaun Adam\'s Store untuk beli MSFS Add-ons Malaysia.';
+  } else if(path === '/admin'){
+    title = 'Admin Panel — ' + base;
+  } else {
+    // Product page
+    var slug = path.replace('/','');
+    var prod = PRODS.find(function(p){ return p.slug === slug; });
+    if(prod){
+      title = prod.name + ' Malaysia — RM ' + prod.price + ' | ' + base;
+      desc = (prod.desc_bm || prod.desc_en || '') + ' Beli ' + prod.name + ' harga murah di Adam\'s Store Malaysia.';
+    }
+  }
+
+  document.title = title;
+  var metaDesc = document.querySelector('meta[name="description"]');
+  if(metaDesc) metaDesc.setAttribute('content', desc);
+  var ogTitle = document.querySelector('meta[property="og:title"]');
+  if(ogTitle) ogTitle.setAttribute('content', title);
+  var ogDesc = document.querySelector('meta[property="og:description"]');
+  if(ogDesc) ogDesc.setAttribute('content', desc);
+  var canonical = document.querySelector('link[rel="canonical"]');
+  if(canonical) canonical.setAttribute('href', 'https://adams-co.vercel.app' + (path === '/' ? '' : path));
+}
+
+// Patch showPage to update URL
+var _origShowPage = showPage;
+showPage = function(id){
+  _origShowPage(id);
+  var pageToPath = {
+    'pageShop': '/',
+    'pageCheckout': '/payment',
+    'pageWishlist': '/wishlist',
+    'pageHistory': '/history',
+    'pageSuccess': '/payment',
+  };
+  var path = pageToPath[id];
+  if(path && getPath() !== path){
+    history.pushState({path:path}, '', path);
+    updateMetaForPath(path);
+  }
+};
+
+// Patch showProductDescription to update URL
+var _origShowProdDesc = showProductDescription;
+showProductDescription = function(id){
+  _origShowProdDesc(id);
+  var prod = PRODS.find(function(p){ return p.id === id; });
+  if(prod && prod.slug){
+    var path = '/' + prod.slug;
+    if(getPath() !== path){
+      history.pushState({path:path}, '', path);
+      updateMetaForPath(path);
+    }
+  }
+};
+
+// Patch goShop to update URL
+var _origGoShop = goShop;
+goShop = function(){
+  _origGoShop();
+  if(getPath() !== '/'){
+    history.pushState({path:'/'}, '', '/');
+    updateMetaForPath('/');
+  }
+};
+
+// Handle browser back/forward
+window.addEventListener('popstate', function(e){
+  var path = e.state && e.state.path ? e.state.path : getPath();
+  var route = ROUTES[path];
+  if(route){ route(); updateMetaForPath(path); }
+  else { navigateTo('/'); }
+});
+
+// Init router on load
+(function(){
+  var path = getPath();
+  if(path && path !== '/' && ROUTES[path]){
+    history.replaceState({path:path}, '', path);
+    // Wait for app to init then navigate
+    setTimeout(function(){ navigateTo(path, false); }, 100);
+  } else {
+    history.replaceState({path:'/'}, '', '/');
+    updateMetaForPath('/');
+  }
+})();
 </script>
 </body>
 </html>
