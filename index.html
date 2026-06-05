@@ -1537,7 +1537,7 @@ html,body{max-width:100%;overflow-x:hidden}
   <div class="nav-links">
     <button class="nav-lnk" onclick="goShop()">Aircrafts</button>
     <button class="nav-lnk" onclick="goShop()">Utilities</button>
-    <button class="nav-lnk" id="navBlogBtn" onclick="showBlogList()">Blog</button>
+    <button class="nav-lnk" onclick="showBlogList()">Blog</button>
   </div>
   <div class="nav-r">
     <button class="lang-btn on" id="btnBM" onclick="setLang('bm')">BM</button>
@@ -4609,6 +4609,13 @@ autoFillCheckout();
     window.scrollTo(0,0);
   } else if(savedPage === 'pageShop' || !savedPage){
     if(currentUser) showPage('pageShop');
+  } else if(savedPage === 'pageBlogList'){
+    showBlogList();
+  } else if(savedPage === 'pageBlogArticle'){
+    var savedBlogKey = null;
+    try{ savedBlogKey = sessionStorage.getItem('adamsBlogKey'); }catch(e){}
+    if(savedBlogKey){ showBlogArticle(savedBlogKey); }
+    else { showBlogList(); }
   } else if(currentUser){
     showPage('pageShop');
   }
@@ -4761,7 +4768,6 @@ window.addEventListener('popstate', function(e){
   }
 })();
 </script>
-
 <!-- BLOG STYLES -->
 <style>
 .blog-page{padding:0 0 60px}
@@ -4772,9 +4778,7 @@ window.addEventListener('popstate', function(e){
 .blog-hero-pill{display:inline-flex;align-items:center;gap:6px;background:rgba(91,110,245,.12);border:1px solid rgba(91,110,245,.3);color:#a5b4fc;font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;letter-spacing:.5px;text-transform:uppercase;margin-bottom:16px}
 .blog-hero-title{font-size:32px;font-weight:800;color:#fff;letter-spacing:-1px;line-height:1.15;margin-bottom:10px;max-width:600px}
 .blog-hero-sub{font-size:14px;color:var(--muted);max-width:500px;line-height:1.7}
-
-/* Blog list cards */
-.blog-list{padding:36px 28px 0;display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px;max-width:900px}
+.blog-list{padding:36px 28px 0;display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px;max-width:900px}
 .blog-card{background:var(--surf);border:1px solid var(--bord);border-radius:16px;overflow:hidden;cursor:pointer;transition:all .25s cubic-bezier(.22,1,.36,1)}
 .blog-card:hover{border-color:var(--bord2);transform:translateY(-3px);box-shadow:0 16px 40px rgba(0,0,0,.3)}
 .blog-card-img{width:100%;height:180px;object-fit:cover;display:block;background:var(--surf2)}
@@ -4785,8 +4789,6 @@ window.addEventListener('popstate', function(e){
 .blog-card-foot{display:flex;align-items:center;justify-content:space-between}
 .blog-card-read{font-size:11px;color:var(--sub);font-weight:600}
 .blog-card-arrow{color:var(--acc);font-size:14px}
-
-/* Blog article */
 .blog-article{padding:0 28px 60px;max-width:720px;margin:0 auto}
 .blog-art-header{padding:40px 0 32px}
 .blog-art-tag{display:inline-flex;align-items:center;gap:5px;background:var(--accd);color:#a5b4fc;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;letter-spacing:.4px;text-transform:uppercase;margin-bottom:14px}
@@ -4820,7 +4822,7 @@ window.addEventListener('popstate', function(e){
       <div class="blog-hero-g"></div>
       <button class="blog-hero-back" onclick="goShop()"><i class="ti ti-arrow-left" style="font-size:12px"></i> Kembali ke Store</button>
       <div class="blog-hero-pill"><i class="ti ti-news" style="font-size:10px"></i> Blog</div>
-      <div class="blog-hero-title">Tips & Panduan<br>MSFS Malaysia</div>
+      <div class="blog-hero-title">Tips &amp; Panduan<br>MSFS Malaysia</div>
       <div class="blog-hero-sub">Artikel berguna untuk flight simmers — panduan addon, perbandingan, dan lebih lagi.</div>
     </div>
     <div class="blog-list">
@@ -4830,10 +4832,7 @@ window.addEventListener('popstate', function(e){
           <div class="blog-card-tag"><i class="ti ti-map" style="font-size:9px"></i> Panduan</div>
           <div class="blog-card-title">Navigraph Unlimited — Kenapa Setiap Simmer Perlu Ada?</div>
           <div class="blog-card-desc">Carta penerbangan terkini, data AIRAC dunia sebenar, dan kenapa ia wajib untuk penerbangan IFR yang realistik.</div>
-          <div class="blog-card-foot">
-            <span class="blog-card-read">5 min baca</span>
-            <i class="ti ti-arrow-right blog-card-arrow"></i>
-          </div>
+          <div class="blog-card-foot"><span class="blog-card-read">5 min baca</span><i class="ti ti-arrow-right blog-card-arrow"></i></div>
         </div>
       </div>
       <div class="blog-card" onclick="showBlogArticle('topaddons')">
@@ -4842,10 +4841,7 @@ window.addEventListener('popstate', function(e){
           <div class="blog-card-tag"><i class="ti ti-star" style="font-size:9px"></i> Senarai</div>
           <div class="blog-card-title">5 Add-on Terbaik MSFS 2024 yang Wajib Ada</div>
           <div class="blog-card-desc">Dari aircraft study-level hingga sistem cuaca, inilah add-on yang benar-benar mengubah pengalaman terbang anda.</div>
-          <div class="blog-card-foot">
-            <span class="blog-card-read">7 min baca</span>
-            <i class="ti ti-arrow-right blog-card-arrow"></i>
-          </div>
+          <div class="blog-card-foot"><span class="blog-card-read">7 min baca</span><i class="ti ti-arrow-right blog-card-arrow"></i></div>
         </div>
       </div>
     </div>
@@ -4864,65 +4860,22 @@ var BLOG_ARTICLES = {
   navigraph: {
     tag: 'Panduan',
     title: 'Navigraph Unlimited — Kenapa Setiap Simmer Perlu Ada?',
-    meta: 'Adam\'s Store &nbsp;·&nbsp; Jun 2025 &nbsp;·&nbsp; 5 min baca',
+    meta: "Adam's Store &nbsp;·&nbsp; Jun 2025 &nbsp;·&nbsp; 5 min baca",
     img: 'https://i.imgur.com/sbzIhYn.png',
     slug: '/blog/navigraph',
-    seoTitle: 'Navigraph Unlimited Malaysia — Panduan Lengkap | Adam\'s Store',
-    seoDesc: 'Kenapa Navigraph Unlimited wajib ada untuk setiap MSFS simmer? Carta Jeppesen terkini, data AIRAC, dan panduan lengkap dalam Bahasa Malaysia.',
-    body: `
-      <p>Kalau korang serius dalam flight simulation, ada satu add-on yang hampir semua simmer veteran akan sebut — <strong>Navigraph Unlimited</strong>. Tapi kenapa ia begitu penting? Mari kita kupas satu persatu.</p>
-
-      <h2>Apa itu Navigraph?</h2>
-      <p>Navigraph adalah platform yang menyediakan <strong>data navigasi penerbangan (AIRAC)</strong> dan <strong>carta Jeppesen</strong> yang sama digunakan oleh juruterbang sebenar di seluruh dunia. Dengan langganan Unlimited, korang dapat akses penuh kepada semua carta dan data terkini setiap 28 hari — mengikut kitaran AIRAC dunia sebenar.</p>
-
-      <h2>Kenapa Ia Penting untuk MSFS?</h2>
-      <p>MSFS datang dengan data navigasi lalai yang <strong>tidak dikemaskini secara berkala</strong>. Ini bermakna waypoints, SID, STAR, dan prosedur pendekatan dalam simulator mungkin sudah lapuk berbanding dunia sebenar. Dengan Navigraph:</p>
-      <ul>
-        <li>Data AIRAC dikemaskini setiap 28 hari — sama seperti penerbangan sebenar</li>
-        <li>Carta Jeppesen lengkap untuk setiap lapangan terbang di seluruh dunia</li>
-        <li>Integrasi terus dengan Fenix A320, PMDG 737, dan hampir semua aircraft add-on</li>
-        <li>Aplikasi Navigraph Charts untuk merancang penerbangan di telefon atau tablet</li>
-      </ul>
-
-      <h2>Serasi dengan Apa?</h2>
-      <p>Ini yang buat Navigraph menonjol — ia serasi dengan <strong>hampir semua aircraft add-on premium</strong>. Fenix A320, PMDG 737, iniBuilds A350, iFly 737 MAX — semua akan menggunakan data AIRAC Navigraph secara automatik selepas dipasang.</p>
-
-      <h2>Harga Berbaloi ke?</h2>
-      <p>Di Adam's Store, Navigraph Unlimited tersedia pada harga <strong>RM 20</strong> sahaja. Berbanding harga asal yang jauh lebih mahal, ini adalah peluang terbaik untuk simmer Malaysia dapatkan pengalaman IFR yang benar-benar realistik tanpa membakar poket.</p>
-
-      <h2>Kesimpulan</h2>
-      <p>Kalau korang terbang IFR, ada aircraft study-level, atau serius dalam flight simulation — Navigraph bukan sekadar add-on pilihan. <strong>Ia keperluan.</strong> Data yang tepat, carta yang lengkap, dan integrasi yang seamless menjadikan setiap penerbangan lebih autentik dan memuaskan.</p>
-    `
+    seoTitle: "Navigraph Unlimited Malaysia — Panduan Lengkap | Adam's Store",
+    seoDesc: "Kenapa Navigraph Unlimited wajib ada untuk setiap MSFS simmer? Carta Jeppesen terkini, data AIRAC, dan panduan lengkap dalam Bahasa Malaysia.",
+    body: '<p>Kalau korang serius dalam flight simulation, ada satu add-on yang hampir semua simmer veteran akan sebut — <strong>Navigraph Unlimited</strong>. Tapi kenapa ia begitu penting? Mari kita kupas satu persatu.</p><h2>Apa itu Navigraph?</h2><p>Navigraph adalah platform yang menyediakan <strong>data navigasi penerbangan (AIRAC)</strong> dan <strong>carta Jeppesen</strong> yang sama digunakan oleh juruterbang sebenar di seluruh dunia. Dengan langganan Unlimited, korang dapat akses penuh kepada semua carta dan data terkini setiap 28 hari — mengikut kitaran AIRAC dunia sebenar.</p><h2>Kenapa Ia Penting untuk MSFS?</h2><p>MSFS datang dengan data navigasi lalai yang <strong>tidak dikemaskini secara berkala</strong>. Ini bermakna waypoints, SID, STAR, dan prosedur pendekatan dalam simulator mungkin sudah lapuk berbanding dunia sebenar. Dengan Navigraph:</p><ul><li>Data AIRAC dikemaskini setiap 28 hari — sama seperti penerbangan sebenar</li><li>Carta Jeppesen lengkap untuk setiap lapangan terbang di seluruh dunia</li><li>Integrasi terus dengan Fenix A320, PMDG 737, dan hampir semua aircraft add-on</li><li>Aplikasi Navigraph Charts untuk merancang penerbangan di telefon atau tablet</li></ul><h2>Serasi dengan Apa?</h2><p>Ini yang buat Navigraph menonjol — ia serasi dengan <strong>hampir semua aircraft add-on premium</strong>. Fenix A320, PMDG 737, iniBuilds A350, iFly 737 MAX — semua akan menggunakan data AIRAC Navigraph secara automatik selepas dipasang.</p><h2>Harga Berbaloi ke?</h2><p>Di Adam\'s Store, Navigraph Unlimited tersedia pada harga <strong>RM 20</strong> sahaja. Berbanding harga asal yang jauh lebih mahal, ini adalah peluang terbaik untuk simmer Malaysia dapatkan pengalaman IFR yang benar-benar realistik tanpa membakar poket.</p><h2>Kesimpulan</h2><p>Kalau korang terbang IFR, ada aircraft study-level, atau serius dalam flight simulation — Navigraph bukan sekadar add-on pilihan. <strong>Ia keperluan.</strong> Data yang tepat, carta yang lengkap, dan integrasi yang seamless menjadikan setiap penerbangan lebih autentik dan memuaskan.</p>'
   },
   topaddons: {
     tag: 'Senarai',
     title: '5 Add-on Terbaik MSFS 2024 yang Wajib Ada',
-    meta: 'Adam\'s Store &nbsp;·&nbsp; Jun 2025 &nbsp;·&nbsp; 7 min baca',
+    meta: "Adam's Store &nbsp;·&nbsp; Jun 2025 &nbsp;·&nbsp; 7 min baca",
     img: 'https://i.imgur.com/4gkm9dp.jpeg',
     slug: '/blog/top-addons-msfs-2024',
-    seoTitle: '5 Add-on Terbaik MSFS 2024 Malaysia | Adam\'s Store Blog',
-    seoDesc: 'Senarai 5 add-on terbaik untuk Microsoft Flight Simulator 2024 yang wajib ada — dari aircraft study-level hingga sistem cuaca. Panduan dalam Bahasa Malaysia.',
-    body: `
-      <p>Microsoft Flight Simulator 2024 membawa grafik dan fizik yang lebih realistik dari sebelumnya. Tapi untuk benar-benar mengangkat pengalaman terbang ke tahap seterusnya, add-on yang tepat adalah kunci. Inilah 5 pilihan terbaik yang patut ada dalam simulator korang.</p>
-
-      <h2>1. Fenix A320 Family</h2>
-      <p>Tidak ada aircraft add-on yang lebih lengkap untuk Airbus A320 berbanding <strong>Fenix A320 Family</strong>. Dengan simulasi sistem yang mendalam, EFB berfungsi penuh, dan cockpit yang ultra-realistik, ia adalah pilihan utama untuk simmer yang mahukan pengalaman Airbus sebenar. Serasi penuh dengan MSFS 2020 dan 2024.</p>
-
-      <h2>2. Navigraph Unlimited</h2>
-      <p><strong>Navigraph</strong> memastikan data navigasi dalam simulator sentiasa terkini mengikut kitaran AIRAC 28 hari. Carta Jeppesen lengkap, integrasi dengan semua aircraft premium, dan aplikasi perancangan penerbangan yang powerful menjadikannya must-have untuk setiap simmer serius.</p>
-
-      <h2>3. GSX Pro</h2>
-      <p>Ground services yang realistik mengubah sepenuhnya suasana di lapangan terbang. <strong>GSX Pro</strong> menambah kru darat beranimasi, servis katering, pushback pintar, dan sistem boarding yang mengikut prosedur sebenar. Setiap departure dan arrival terasa lebih hidup dan imersif.</p>
-
-      <h2>4. REX Atmos</h2>
-      <p>Cuaca adalah salah satu elemen paling penting dalam flight simulation. <strong>REX Atmos</strong> untuk MSFS 2024 membawa sistem awan volumetrik yang lebih realistik, peralihan cuaca yang dinamik, dan atmosfera yang benar-benar hidup — jauh melebihi sistem cuaca lalai simulator.</p>
-
-      <h2>5. BeyondATC</h2>
-      <p>ATC lalai MSFS terkenal dengan kelemahan dan gelagat yang tidak realistik. <strong>BeyondATC</strong> menggantikan sepenuhnya dengan sistem ATC berkuasa AI yang memberikan arahan lebih natural, traffic yang realistik, dan komunikasi yang terasa seperti penerbangan sebenar.</p>
-
-      <h2>Kesimpulan</h2>
-      <p>Kelima-lima add-on ini melengkapi antara satu sama lain — aircraft yang realistik, data navigasi terkini, ground services imersif, cuaca dinamik, dan ATC yang intelligent. Mulakan dengan mana-mana satu dan rasakan sendiri perbezaannya. Semua tersedia di <strong>Adam's Store</strong> dengan harga terbaik di Malaysia.</p>
-    `
+    seoTitle: "5 Add-on Terbaik MSFS 2024 Malaysia | Adam's Store Blog",
+    seoDesc: "Senarai 5 add-on terbaik untuk Microsoft Flight Simulator 2024 yang wajib ada — dari aircraft study-level hingga sistem cuaca. Panduan dalam Bahasa Malaysia.",
+    body: '<p>Microsoft Flight Simulator 2024 membawa grafik dan fizik yang lebih realistik dari sebelumnya. Tapi untuk benar-benar mengangkat pengalaman terbang ke tahap seterusnya, add-on yang tepat adalah kunci. Inilah 5 pilihan terbaik yang patut ada dalam simulator korang.</p><h2>1. Fenix A320 Family</h2><p>Tidak ada aircraft add-on yang lebih lengkap untuk Airbus A320 berbanding <strong>Fenix A320 Family</strong>. Dengan simulasi sistem yang mendalam, EFB berfungsi penuh, dan cockpit yang ultra-realistik, ia adalah pilihan utama untuk simmer yang mahukan pengalaman Airbus sebenar.</p><h2>2. Navigraph Unlimited</h2><p><strong>Navigraph</strong> memastikan data navigasi dalam simulator sentiasa terkini mengikut kitaran AIRAC 28 hari. Carta Jeppesen lengkap, integrasi dengan semua aircraft premium, dan aplikasi perancangan penerbangan yang powerful menjadikannya must-have untuk setiap simmer serius.</p><h2>3. GSX Pro</h2><p>Ground services yang realistik mengubah sepenuhnya suasana di lapangan terbang. <strong>GSX Pro</strong> menambah kru darat beranimasi, servis katering, pushback pintar, dan sistem boarding yang mengikut prosedur sebenar.</p><h2>4. REX Atmos</h2><p>Cuaca adalah salah satu elemen paling penting dalam flight simulation. <strong>REX Atmos</strong> untuk MSFS 2024 membawa sistem awan volumetrik yang lebih realistik, peralihan cuaca yang dinamik, dan atmosfera yang benar-benar hidup.</p><h2>5. BeyondATC</h2><p>ATC lalai MSFS terkenal dengan kelemahan dan gelagat yang tidak realistik. <strong>BeyondATC</strong> menggantikan sepenuhnya dengan sistem ATC berkuasa AI yang memberikan arahan lebih natural dan komunikasi yang terasa seperti penerbangan sebenar.</p><h2>Kesimpulan</h2><p>Kelima-lima add-on ini melengkapi antara satu sama lain. Mulakan dengan mana-mana satu dan rasakan sendiri perbezaannya. Semua tersedia di <strong>Adam\'s Store</strong> dengan harga terbaik di Malaysia.</p>'
   }
 };
 
@@ -4930,41 +4883,24 @@ function showBlogList(){
   showPage('pageBlogList');
   window.scrollTo(0,0);
   history.pushState({path:'/blog'}, '', '/blog');
+  try{ sessionStorage.setItem('adamsActivePage','pageBlogList'); }catch(e){}
   document.title = "Blog — Adam's Store | Tips & Panduan MSFS Malaysia";
-  var metaDesc = document.querySelector('meta[name="description"]');
-  if(metaDesc) metaDesc.setAttribute('content', 'Artikel tips dan panduan MSFS Malaysia dari Adam\'s Store. Panduan add-on, perbandingan aircraft, dan lebih lagi.');
+  var m=document.querySelector('meta[name="description"]'); if(m) m.setAttribute('content',"Artikel tips dan panduan MSFS Malaysia dari Adam's Store.");
 }
 
 function showBlogArticle(key){
   var art = BLOG_ARTICLES[key];
   if(!art) return;
-  var html = '<div style="background:var(--surf);border-bottom:1px solid var(--bord);padding:20px 28px 0">' +
-    '<button class="blog-hero-back" onclick="showBlogList()" style="display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;border:none;background:none;font-family:inherit;padding:8px 0 16px;transition:color .15s"><i class="ti ti-arrow-left" style="font-size:12px"></i> Kembali ke Blog</button>' +
-    '</div>' +
-    '<div class="blog-article">' +
-    '<div class="blog-art-header">' +
-    '<div class="blog-art-tag"><i class="ti ti-news" style="font-size:9px"></i> ' + art.tag + '</div>' +
-    '<div class="blog-art-title">' + art.title + '</div>' +
-    '<div class="blog-art-meta">' + art.meta + '</div>' +
-    '</div>' +
-    '<img class="blog-art-img" src="' + art.img + '" alt="' + art.title + '">' +
-    '<div class="blog-art-body">' + art.body + '</div>' +
-    '<div class="blog-art-cta">' +
-    '<h3>🛒 Jumpa Add-on yang Korang Nak?</h3>' +
-    '<p>Semua add-on yang disebut tersedia di Adam\'s Store dengan harga terbaik di Malaysia.</p>' +
-    '<button class="blog-art-cta-btn" onclick="goShop()">Lihat Semua Addons</button>' +
-    '</div>' +
-    '</div>';
+  var html = '<div style="background:var(--surf);border-bottom:1px solid var(--bord);padding:20px 28px 0"><button class="blog-hero-back" onclick="showBlogList()" style="display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;border:none;background:none;font-family:inherit;padding:8px 0 16px;transition:color .15s"><i class="ti ti-arrow-left" style="font-size:12px"></i> Kembali ke Blog</button></div><div class="blog-article"><div class="blog-art-header"><div class="blog-art-tag"><i class="ti ti-news" style="font-size:9px"></i> '+art.tag+'</div><div class="blog-art-title">'+art.title+'</div><div class="blog-art-meta">'+art.meta+'</div></div><img class="blog-art-img" src="'+art.img+'" alt="'+art.title+'"><div class="blog-art-body">'+art.body+'</div><div class="blog-art-cta"><h3>🛒 Jumpa Add-on yang Korang Nak?</h3><p>Semua add-on yang disebut tersedia di Adam\'s Store dengan harga terbaik di Malaysia.</p><button class="blog-art-cta-btn" onclick="goShop()">Lihat Semua Addons</button></div></div>';
   document.getElementById('blogArticleContent').innerHTML = html;
   showPage('pageBlogArticle');
   window.scrollTo(0,0);
-  history.pushState({path: art.slug}, '', art.slug);
+  history.pushState({path:art.slug}, '', art.slug);
+  try{ sessionStorage.setItem('adamsActivePage','pageBlogArticle'); sessionStorage.setItem('adamsBlogKey', key); }catch(e){}
   document.title = art.seoTitle;
-  var metaDesc = document.querySelector('meta[name="description"]');
-  if(metaDesc) metaDesc.setAttribute('content', art.seoDesc);
+  var m=document.querySelector('meta[name="description"]'); if(m) m.setAttribute('content', art.seoDesc);
 }
 
-// Add blog routes
 ROUTES['/blog'] = function(){ showBlogList(); };
 ROUTES['/blog/navigraph'] = function(){ showBlogArticle('navigraph'); };
 ROUTES['/blog/top-addons-msfs-2024'] = function(){ showBlogArticle('topaddons'); };
