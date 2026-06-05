@@ -3,7 +3,40 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Adam's Store</title>
+<title>Adam's Store — MSFS Add-ons Malaysia | Harga Murah & Terbaik</title>
+<meta name="description" content="Beli MSFS Add-ons Malaysia dengan harga murah dan berpatutan. Fenix A320, PMDG 737, GSX Pro, Navigraph & lebih lagi. Penghantaran digital ke e-mel anda. Adamstore.co — Kedai MSFS Add-ons #1 Malaysia.">
+<meta name="keywords" content="MSFS Malaysia, MSFS Add-ons Malaysia, Cheap MSFS Add-ons, Adamstore.co, Microsoft Flight Simulator Malaysia, PMDG Malaysia, Fenix A320 Malaysia, GSX Pro Malaysia, Navigraph Malaysia, flight sim addons murah, MSFS 2020 add-ons, MSFS 2024 add-ons">
+<meta name="author" content="Adam's Store">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://adamstore.co">
+<!-- Open Graph / Facebook -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://adamstore.co">
+<meta property="og:title" content="Adam's Store — MSFS Add-ons Malaysia | Harga Murah">
+<meta property="og:description" content="Beli MSFS Add-ons Malaysia dengan harga murah. Fenix A320, PMDG 737, GSX Pro, Navigraph & lebih. Penghantaran digital terus ke e-mel anda.">
+<meta property="og:image" content="https://i.imgur.com/4gkm9dp.jpeg">
+<meta property="og:site_name" content="Adam's Store">
+<meta property="og:locale" content="ms_MY">
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Adam's Store — MSFS Add-ons Malaysia | Harga Murah">
+<meta name="twitter:description" content="Beli MSFS Add-ons Malaysia dengan harga murah. Fenix A320, PMDG 737, GSX Pro & Navigraph. Penghantaran digital terus ke e-mel anda.">
+<meta name="twitter:image" content="https://i.imgur.com/4gkm9dp.jpeg">
+<!-- Structured Data -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Store",
+  "name": "Adam's Store",
+  "url": "https://adamstore.co",
+  "description": "Kedai MSFS Add-ons Malaysia dengan harga murah dan berpatutan. Penghantaran digital.",
+  "image": "https://i.imgur.com/4gkm9dp.jpeg",
+  "areaServed": "Malaysia",
+  "currenciesAccepted": "MYR",
+  "paymentAccepted": "Touch n Go eWallet",
+  "priceRange": "RM12 - RM70"
+}
+</script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
 <script>
@@ -1542,6 +1575,57 @@ html,body{max-width:100%;overflow-x:hidden}
     <button class="stock-banner-dismiss" onclick="document.getElementById('stockBanner').classList.remove('show')" title="Tutup">✕</button>
   </div>
 </div>
+
+<!-- DISCOUNT COUNTDOWN BANNER -->
+<div id="discountBanner" style="background:linear-gradient(90deg,#031008,#061e10,#031008);border-bottom:1px solid rgba(74,222,128,.25);padding:10px 20px;display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;position:relative;overflow:hidden;cursor:pointer" onclick="document.getElementById('borisRibbon').scrollIntoView({behavior:'smooth'})">
+  <div style="position:absolute;inset:0;background:repeating-linear-gradient(45deg,transparent,transparent 10px,rgba(74,222,128,.02) 10px,rgba(74,222,128,.02) 20px);pointer-events:none"></div>
+  <span style="font-size:13px;font-weight:700;color:#4ade80;display:flex;align-items:center;gap:7px;position:relative">
+    <span style="font-size:16px">🔊</span> TAWARAN BORIS SOUND PACK — MALAM INI SAHAJA!
+  </span>
+  <span style="font-size:12px;color:rgba(100,220,140,.7);position:relative">Tamat dalam:</span>
+  <div style="display:flex;gap:6px;align-items:center;position:relative" id="countdownWrap">
+    <div class="cdown-unit"><span class="cdown-val" id="cdHH">00</span><span class="cdown-lbl">JAM</span></div>
+    <span style="color:#4ade80;font-weight:800;font-size:18px;margin-bottom:8px">:</span>
+    <div class="cdown-unit"><span class="cdown-val" id="cdMM">00</span><span class="cdown-lbl">MIN</span></div>
+    <span style="color:#4ade80;font-weight:800;font-size:18px;margin-bottom:8px">:</span>
+    <div class="cdown-unit"><span class="cdown-val" id="cdSS">00</span><span class="cdown-lbl">SAAT</span></div>
+  </div>
+  <button onclick="event.stopPropagation();document.getElementById('borisRibbon').scrollIntoView({behavior:'smooth'})" style="background:linear-gradient(135deg,#22c55e,#4ade80);color:#031008;border:none;padding:7px 16px;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer;font-family:inherit;position:relative;white-space:nowrap">Lihat Boris Pack →</button>
+  <button onclick="event.stopPropagation();document.getElementById('discountBanner').style.display='none'" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:rgba(74,222,128,.4);cursor:pointer;font-size:16px;line-height:1">✕</button>
+</div>
+
+<style>
+.cdown-unit{display:flex;flex-direction:column;align-items:center;gap:2px}
+.cdown-val{background:rgba(74,222,128,.12);border:1px solid rgba(74,222,128,.3);color:#4ade80;font-size:20px;font-weight:800;padding:4px 10px;border-radius:7px;min-width:42px;text-align:center;font-variant-numeric:tabular-nums;letter-spacing:1px;font-family:monospace}
+.cdown-lbl{font-size:8px;font-weight:700;color:rgba(74,222,128,.6);letter-spacing:1px;text-transform:uppercase}
+
+/* Boris Deal Ribbon */
+.boris-ribbon{background:linear-gradient(135deg,#041208,#0d2a14);border-top:1px solid rgba(74,222,128,.2);border-bottom:1px solid rgba(74,222,128,.2);padding:0;overflow:hidden;position:relative}
+.boris-ribbon-hd{padding:20px 28px 14px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.boris-ribbon-title{font-size:15px;font-weight:800;color:#4ade80;display:flex;align-items:center;gap:8px;letter-spacing:-.2px}
+.boris-ribbon-sub{font-size:12px;color:rgba(74,222,128,.6);margin-top:2px}
+.boris-ribbon-badge{background:rgba(74,222,128,.15);border:1px solid rgba(74,222,128,.35);color:#4ade80;font-size:10px;font-weight:700;padding:4px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:.6px;white-space:nowrap}
+.boris-swipe-track{display:flex;gap:14px;padding:0 28px 22px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.boris-swipe-track::-webkit-scrollbar{display:none}
+.boris-card{flex:0 0 260px;background:rgba(13,42,20,.8);border:1px solid rgba(74,222,128,.2);border-radius:14px;overflow:hidden;scroll-snap-align:start;cursor:pointer;transition:border-color .25s,transform .25s;position:relative}
+.boris-card:hover{border-color:rgba(74,222,128,.5);transform:translateY(-3px)}
+.boris-card-img{width:100%;aspect-ratio:16/9;object-fit:cover;display:block}
+.boris-card-body{padding:12px 14px 14px}
+.boris-card-name{font-size:13px;font-weight:700;color:#e8eaf0;margin-bottom:4px}
+.boris-card-tags{font-size:10px;color:rgba(74,222,128,.7);font-weight:600;margin-bottom:10px}
+.boris-card-row{display:flex;align-items:center;justify-content:space-between}
+.boris-card-price{font-size:16px;font-weight:800;color:#4ade80}
+.boris-card-btn{background:rgba(74,222,128,.15);border:1px solid rgba(74,222,128,.35);color:#4ade80;font-size:11px;font-weight:700;padding:5px 12px;border-radius:7px;cursor:pointer;font-family:inherit;transition:all .15s}
+.boris-card-btn:hover{background:rgba(74,222,128,.25)}
+.boris-swipe-dots{display:flex;justify-content:center;gap:5px;padding-bottom:16px}
+.boris-dot{width:5px;height:5px;border-radius:50%;background:rgba(74,222,128,.2);transition:all .2s;border:none;cursor:pointer;padding:0}
+.boris-dot.on{background:#4ade80;width:18px;border-radius:3px}
+@media(max-width:768px){
+  .boris-ribbon-hd{padding:16px 14px 12px}
+  .boris-swipe-track{padding:0 14px 18px;gap:10px}
+  .boris-card{flex:0 0 200px}
+}
+</style>
 <div class="page active" id="pageShop">
   <section class="hero">
     <div class="hero-g1"></div><div class="hero-g2"></div><div class="hero-grid"></div>
@@ -1625,6 +1709,19 @@ html,body{max-width:100%;overflow-x:hidden}
       <p id="bundleSub">Jimat lebih bila beli bersama. Tawaran terhad!</p>
     </div>
     <button class="bundle-btn" onclick="addBundle()">Grab Bundle — RM 58</button>
+  </div>
+
+  <!-- BORIS DEAL RIBBON -->
+  <div class="boris-ribbon" id="borisRibbon">
+    <div class="boris-ribbon-hd">
+      <div>
+        <div class="boris-ribbon-title">🔊 Boris Sound Packs</div>
+        <div class="boris-ribbon-sub">Tingkatkan realisme bunyi PMDG anda — MSFS 2020 & 2024</div>
+      </div>
+      <span class="boris-ribbon-badge">🔥 Popular</span>
+    </div>
+    <div class="boris-swipe-track" id="borisTrack"></div>
+    <div class="boris-swipe-dots" id="borisDots"></div>
   </div>
 
   <!-- RECENTLY VIEWED -->
@@ -2325,7 +2422,7 @@ var PRODS=[
     name:'PMDG 737NG Sound',
     cat:'boris',
     thumb:'ct-boris',
-    image:'https://i.imgur.com/NPqcOZO.jpeg',
+    image:'https://i.imgur.com/1cMPVwV.jpeg',
     emoji:'&#128266;',
     price:30,
     tags:['Sound','PMDG 737','MSFS2020','MSFS2024'],
@@ -2338,7 +2435,7 @@ var PRODS=[
     name:'PMDG 777 Ultimate Sound',
     cat:'boris',
     thumb:'ct-boris',
-    image:'https://i.imgur.com/1cMPVwV.jpeg',
+    image:'https://i.imgur.com/NPqcOZO.jpeg',
     emoji:'&#128266;',
     price:30,
     tags:['Sound','PMDG 777','MSFS2020','MSFS2024'],
@@ -4282,6 +4379,72 @@ updateNavUser();
 updateBuyerChatFab();
 updateWishBadge();
 renderRecent();
+
+// ===== DISCOUNT COUNTDOWN TIMER (sampai kul 12 malam) =====
+(function(){
+  function updateCountdown(){
+    var now = new Date();
+    var midnight = new Date(now);
+    midnight.setHours(24,0,0,0);
+    var diff = midnight - now;
+    if(diff <= 0){
+      document.getElementById('discountBanner').style.display='none';
+      return;
+    }
+    var h = Math.floor(diff/3600000);
+    var m = Math.floor((diff%3600000)/60000);
+    var s = Math.floor((diff%60000)/1000);
+    document.getElementById('cdHH').textContent = String(h).padStart(2,'0');
+    document.getElementById('cdMM').textContent = String(m).padStart(2,'0');
+    document.getElementById('cdSS').textContent = String(s).padStart(2,'0');
+  }
+  updateCountdown();
+  setInterval(updateCountdown, 1000);
+})();
+
+// ===== BORIS DEAL SWIPE RIBBON =====
+(function(){
+  var borisProds = PRODS.filter(function(p){ return p.cat==='boris' && !p.soon; });
+  var track = document.getElementById('borisTrack');
+  var dotsEl = document.getElementById('borisDots');
+  if(!track || !borisProds.length) return;
+
+  track.innerHTML = borisProds.map(function(p){
+    return '<div class="boris-card" onclick="showProductDescription('+p.id+')">'+
+      '<img class="boris-card-img" src="'+p.image+'" alt="'+p.name+'" onerror="this.style.display=\'none\'">'+
+      '<div class="boris-card-body">'+
+        '<div class="boris-card-name">'+p.name+'</div>'+
+        '<div class="boris-card-tags">'+p.tags.slice(0,3).join(' · ')+'</div>'+
+        '<div class="boris-card-row">'+
+          '<span class="boris-card-price">RM '+p.price+'</span>'+
+          '<button class="boris-card-btn" onclick="event.stopPropagation();addToCart('+p.id+')">+ Troli</button>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+
+  // Dots
+  dotsEl.innerHTML = borisProds.map(function(_,i){
+    return '<button class="boris-dot'+(i===0?' on':'')+'" onclick="borisScrollTo('+i+')"></button>';
+  }).join('');
+
+  window.borisScrollTo = function(idx){
+    var cards = track.querySelectorAll('.boris-card');
+    if(cards[idx]) track.scrollTo({left:cards[idx].offsetLeft - 28, behavior:'smooth'});
+    dotsEl.querySelectorAll('.boris-dot').forEach(function(d,i){ d.classList.toggle('on',i===idx); });
+  };
+
+  track.addEventListener('scroll', function(){
+    var cards = track.querySelectorAll('.boris-card');
+    var center = track.scrollLeft + track.clientWidth/2;
+    var closest = 0, minDist = Infinity;
+    cards.forEach(function(c,i){
+      var dist = Math.abs(c.offsetLeft + c.offsetWidth/2 - center);
+      if(dist < minDist){ minDist=dist; closest=i; }
+    });
+    dotsEl.querySelectorAll('.boris-dot').forEach(function(d,i){ d.classList.toggle('on',i===closest); });
+  });
+})();
 if(currentUser){
   applyTheme(currentUser.theme||'dark');
   var s = document.getElementById('introScreen');
