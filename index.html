@@ -322,8 +322,43 @@ body{background:var(--bg);color:var(--txt);font-family:Inter,sans-serif;font-siz
 .stat-n{color:#fff;font-size:20px;font-weight:800;letter-spacing:-.5px}
 .stat-l{color:var(--muted);font-size:11px;margin-top:2px;text-transform:uppercase;letter-spacing:.4px}
 
-.fbar{background:var(--surf);border-bottom:1px solid var(--bord);padding:0 20px;display:flex;align-items:center;gap:4px;height:58px;position:sticky;top:56px;z-index:90;overflow-x:auto}
-.fbar::-webkit-scrollbar{height:0}
+/* ===== SMART FILTER BAR ===== */
+.fbar{background:var(--surf);border-bottom:1px solid var(--bord);padding:0;position:sticky;top:56px;z-index:90;display:flex;flex-direction:column}
+
+/* Search row */
+.fbar-search-row{padding:10px 16px 8px;display:flex;align-items:center;gap:8px}
+.fbar-search-inner{position:relative;flex:1;display:flex;align-items:center}
+.fbar-search-icon{position:absolute;left:11px;font-size:13px;color:var(--sub);pointer-events:none;z-index:1}
+.fbar-search-inp{width:100%;background:var(--surf2);border:1px solid var(--bord);color:var(--txt);padding:8px 32px 8px 34px;border-radius:12px;font-size:13px;font-family:inherit;outline:none;transition:border-color .2s,box-shadow .2s}
+.fbar-search-inp:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(91,110,245,.1)}
+.fbar-search-inp::placeholder{color:var(--sub)}
+.fbar-search-clr{position:absolute;right:9px;background:none;border:none;color:var(--sub);cursor:pointer;padding:3px;line-height:1;transition:color .15s;display:none}
+.fbar-search-clr:hover{color:var(--txt)}
+.fbar-sort-sel{background:var(--surf2);border:1px solid var(--bord);color:var(--muted);padding:7px 10px;border-radius:10px;font-size:12px;cursor:pointer;font-family:inherit;outline:none;transition:border-color .15s;font-weight:500;flex-shrink:0}
+.fbar-sort-sel:hover{border-color:var(--bord2);color:var(--txt)}
+
+/* Filter carousel row */
+.fbar-carousel-row{display:flex;align-items:center;padding:0 8px 10px;gap:6px}
+.fbar-arrow{background:var(--surf2);border:1px solid var(--bord);color:var(--muted);width:36px;height:36px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;transition:all .15s;user-select:none}
+.fbar-arrow:hover{border-color:var(--bord2);color:var(--txt);background:var(--surf3)}
+.fbar-arrow:disabled{opacity:.25;cursor:default;pointer-events:none}
+
+/* Single chip display in center */
+.fbar-center{flex:1;display:flex;align-items:center;justify-content:center;position:relative;height:36px;overflow:hidden}
+.fbar-chip-display{display:flex;align-items:center;justify-content:center;gap:8px;position:absolute;transition:all .28s cubic-bezier(.22,1,.36,1)}
+.fbar-chip-label{font-size:13px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;transition:color .2s}
+.fbar-chip-dots{display:flex;gap:4px;align-items:center;margin-top:2px;display:none}
+.fbar-dot{width:4px;height:4px;border-radius:50%;background:var(--sub);transition:all .2s;flex-shrink:0}
+.fbar-dot.on{background:var(--acc);width:12px;border-radius:2px}
+.fbar-counter{font-size:10px;color:var(--sub);font-weight:600;letter-spacing:.3px}
+
+/* Hide actual chip buttons — used only for logic */
+.fbar-track{display:none}
+
+/* Hide old search-wrap / fbar-right */
+.search-wrap{display:none}
+.fbar-div{display:none}
+.fbar-right{display:none}
 .chip{display:inline-flex;align-items:center;background:var(--surf2);border:1px solid var(--bord);color:var(--muted);padding:7px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .22s cubic-bezier(.22,1,.36,1);white-space:nowrap;border-radius:10px;letter-spacing:.3px;text-transform:uppercase}
 .chip:hover{color:var(--txt);border-color:var(--bord2);transform:translateY(-1px)}
 /* ALL */
@@ -352,6 +387,9 @@ body{background:var(--bg);color:var(--txt);font-family:Inter,sans-serif;font-siz
 /* FSREALISTIC */
 .chip[data-cat=fsrealistic]:hover{color:#d1d5db}
 .chip[data-cat=fsrealistic].on{background:rgba(120,120,140,.18);border-color:rgba(180,180,200,.4);color:#d1d5db;box-shadow:0 2px 12px rgba(120,120,140,.18);transform:translateY(-1px)}
+/* BORIS */
+.chip[data-cat=boris]:hover{color:#4ade80}
+.chip[data-cat=boris].on{background:rgba(34,197,94,.15);border-color:rgba(74,222,128,.4);color:#4ade80;box-shadow:0 2px 12px rgba(34,197,94,.2);transform:translateY(-1px)}
 
 .fbar-div{width:1px;background:var(--bord);height:26px;flex-shrink:0;margin:0 8px}
 .fbar-right{display:flex;align-items:center;gap:8px;flex-shrink:0;margin-left:auto}
@@ -410,6 +448,7 @@ body{background:var(--bg);color:var(--txt);font-family:Inter,sans-serif;font-siz
 .card.cat-fs2crew:hover{border-color:rgba(234,179,8,.5);box-shadow:0 20px 50px rgba(234,179,8,.16);background:linear-gradient(160deg,#0d0a00 55%,#1a1400)}
 .card.cat-ifly:hover{border-color:rgba(30,144,255,.5);box-shadow:0 20px 50px rgba(30,144,255,.2);background:linear-gradient(160deg,#020a18 55%,#041428)}
 .card.cat-fsrealistic:hover{border-color:rgba(120,120,140,.5);box-shadow:0 20px 50px rgba(120,120,140,.18);background:linear-gradient(160deg,#0e0e10 55%,#1a1a1e)}
+.card.cat-boris:hover{border-color:rgba(74,222,128,.5);box-shadow:0 20px 50px rgba(34,197,94,.18);background:linear-gradient(160deg,#041208 55%,#091e10)}
 
 /* Soon overlay */
 .card.soon-card{opacity:.75}
@@ -428,11 +467,13 @@ body{background:var(--bg);color:var(--txt);font-family:Inter,sans-serif;font-siz
 .ct-nav{background:linear-gradient(135deg,#06080f,#0e1220)}
 .ct-ifly{background:linear-gradient(135deg,#020c1e,#041e3a)}
 .ct-fsr{background:linear-gradient(135deg,#0e0e10,#1a1a20)}
+.ct-boris{background:linear-gradient(135deg,#041208,#0a2210)}
 
 /* Badge */
 .card-badge{position:absolute;top:10px;left:10px;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:.4px;z-index:2;backdrop-filter:blur(6px)}
 .b-hot{background:rgba(239,68,68,.28);color:#fca5a5;border:1px solid rgba(239,68,68,.4)}
 .b-new{background:rgba(34,197,94,.2);color:#86efac;border:1px solid rgba(34,197,94,.35)}
+.b-grn{background:rgba(74,222,128,.22);color:#4ade80;border:1px solid rgba(74,222,128,.5)}
 
 /* Quick Peek button (shows on thumb hover) */
 .card-peek-btn{
@@ -461,6 +502,7 @@ body{background:var(--bg);color:var(--txt);font-family:Inter,sans-serif;font-siz
 .chip-fs2crew{background:rgba(234,179,8,.15);color:#fde68a;border:1px solid rgba(234,179,8,.3)}
 .chip-ifly{background:rgba(30,144,255,.15);color:#93c5fd;border:1px solid rgba(30,144,255,.3)}
 .chip-fsrealistic{background:rgba(120,120,140,.18);color:#d1d5db;border:1px solid rgba(120,120,140,.3)}
+.chip-boris{background:rgba(34,197,94,.15);color:#4ade80;border:1px solid rgba(34,197,94,.3)}
 
 .card-name{font-size:16px;font-weight:700;color:#fff;line-height:1.3;margin-bottom:8px;min-height:42px}
 .card-tags{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px}
@@ -878,10 +920,9 @@ footer a{color:var(--muted);text-decoration:none}
   .stat-n{font-size:20px}
 
   /* Filter bar */
-  .fbar{padding:10px 14px;gap:6px;flex-wrap:wrap}
-  .fbar-right{width:100%;justify-content:space-between}
-  .search-input{width:100px}
-  .search-input:focus{width:130px}
+  .fbar-search-row{padding:8px 12px 6px}
+  .fbar-carousel-row{padding:0 6px 8px;gap:4px}
+  .fbar-arrow{width:28px;height:28px;font-size:13px}
   .chip{padding:5px 11px;font-size:11px}
 
   /* Shop grid */
@@ -1512,30 +1553,45 @@ html,body{max-width:100%;overflow-x:hidden}
     </div>
   </section>
 
-  <div class="fbar">
-    <button class="chip on" id="chipAll" onclick="doFilter('all',this)">Semua</button>
-    <button class="chip" data-cat="fenix" onclick="doFilter('fenix',this)">Fenix</button>
-    <button class="chip" data-cat="pmdg" onclick="doFilter('pmdg',this)">PMDG</button>
-    <button class="chip" data-cat="gsx" onclick="doFilter('gsx',this)">GSX Pro</button>
-    <button class="chip" data-cat="navigraph" onclick="doFilter('navigraph',this)">Navigraph</button>
-    <button class="chip" data-cat="inibuilds" onclick="doFilter('inibuilds',this)">iniBuilds</button>
-    <button class="chip" data-cat="beyondatc" onclick="doFilter('beyondatc',this)">BeyondATC</button>
-    <button class="chip" data-cat="fs2crew" onclick="doFilter('fs2crew',this)">FS2Crew</button>
-    <button class="chip" data-cat="ifly" onclick="doFilter('ifly',this)">iFly</button>
-    <button class="chip" data-cat="fsrealistic" onclick="doFilter('fsrealistic',this)">FSRealistic</button>
-    <div class="fbar-div"></div>
-    <div class="fbar-right">
-      <div class="search-wrap">
-        <i class="ti ti-search search-icon"></i>
-        <input class="search-input" id="searchInput" type="text" placeholder="Cari addon..." oninput="doSearch(this.value)" autocomplete="off">
-        <button class="search-clear" id="searchClear" onclick="clearSearch()" style="display:none"><i class="ti ti-x" style="font-size:11px"></i></button>
+  <div class="fbar" id="fbar">
+    <!-- Search row -->
+    <div class="fbar-search-row">
+      <div class="fbar-search-inner">
+        <i class="ti ti-search fbar-search-icon"></i>
+        <input class="fbar-search-inp" id="searchInput" type="text" placeholder="Cari addon..." oninput="doSearch(this.value);updateSearchClr()" autocomplete="off">
+        <button class="fbar-search-clr" id="searchClear" onclick="clearSearch()"><i class="ti ti-x" style="font-size:11px"></i></button>
       </div>
-      <select class="sort-sel" onchange="doSort(this.value)">
+      <select class="fbar-sort-sel" onchange="doSort(this.value)">
         <option value="default" id="srtDef">Utama</option>
-        <option value="asc" id="srtAsc">Harga: Rendah ke Tinggi</option>
-        <option value="desc" id="srtDesc">Harga: Tinggi ke Rendah</option>
-        <option value="name" id="srtName">Nama A-Z</option>
+        <option value="asc" id="srtAsc">↑ Harga</option>
+        <option value="desc" id="srtDesc">↓ Harga</option>
+        <option value="name" id="srtName">A-Z</option>
       </select>
+    </div>
+    <!-- Filter carousel row -->
+    <div class="fbar-carousel-row">
+      <button class="fbar-arrow" id="fbarPrev" onclick="fbarScroll(-1)"><i class="ti ti-chevron-left" style="font-size:14px"></i></button>
+      <div class="fbar-center">
+        <div class="fbar-chip-display" id="fbarDisplay">
+          <span class="fbar-chip-label" id="fbarLabel">Semua</span>
+          <span class="fbar-counter" id="fbarCounter">1 / 11</span>
+        </div>
+        <!-- Hidden chips for logic only -->
+        <div class="fbar-track" id="fbarTrack">
+          <button class="chip on" id="chipAll" data-label="Semua" data-cat="all" onclick="doFilter('all',this)">Semua</button>
+          <button class="chip" data-cat="fenix" data-label="Fenix" onclick="doFilter('fenix',this)">Fenix</button>
+          <button class="chip" data-cat="pmdg" data-label="PMDG" onclick="doFilter('pmdg',this)">PMDG</button>
+          <button class="chip" data-cat="gsx" data-label="GSX Pro" onclick="doFilter('gsx',this)">GSX Pro</button>
+          <button class="chip" data-cat="navigraph" data-label="Navigraph" onclick="doFilter('navigraph',this)">Navigraph</button>
+          <button class="chip" data-cat="inibuilds" data-label="iniBuilds" onclick="doFilter('inibuilds',this)">iniBuilds</button>
+          <button class="chip" data-cat="beyondatc" data-label="BeyondATC" onclick="doFilter('beyondatc',this)">BeyondATC</button>
+          <button class="chip" data-cat="fs2crew" data-label="FS2Crew" onclick="doFilter('fs2crew',this)">FS2Crew</button>
+          <button class="chip" data-cat="ifly" data-label="iFly" onclick="doFilter('ifly',this)">iFly</button>
+          <button class="chip" data-cat="fsrealistic" data-label="FSRealistic" onclick="doFilter('fsrealistic',this)">FSRealistic</button>
+          <button class="chip" data-cat="boris" data-label="Boris" onclick="doFilter('boris',this)">Boris</button>
+        </div>
+      </div>
+      <button class="fbar-arrow" id="fbarNext" onclick="fbarScroll(1)"><i class="ti ti-chevron-right" style="font-size:14px"></i></button>
     </div>
   </div>
 
@@ -1624,6 +1680,16 @@ html,body{max-width:100%;overflow-x:hidden}
           </tr>
           <tr>
             <td><div class="compat-prod-cell"><div class="compat-prod-icon" style="background:linear-gradient(135deg,#4c1d95,#8b5cf6)">B</div><div><div class="compat-prod-name">BeyondATC</div><div class="compat-prod-dev">BeyondATC</div></div></div></td>
+            <td class="compat-cell-center"><span class="compat-yes"><i class="ti ti-check" style="font-size:10px"></i> Serasi</span></td>
+            <td class="compat-cell-center"><span class="compat-yes"><i class="ti ti-check" style="font-size:10px"></i> Serasi</span></td>
+          </tr>
+          <tr>
+            <td><div class="compat-prod-cell"><div class="compat-prod-icon" style="background:linear-gradient(135deg,#14532d,#22c55e)">B</div><div><div class="compat-prod-name">Boris — PMDG 737NG Sound</div><div class="compat-prod-dev">Boris</div></div></div></td>
+            <td class="compat-cell-center"><span class="compat-yes"><i class="ti ti-check" style="font-size:10px"></i> Serasi</span></td>
+            <td class="compat-cell-center"><span class="compat-yes"><i class="ti ti-check" style="font-size:10px"></i> Serasi</span></td>
+          </tr>
+          <tr>
+            <td><div class="compat-prod-cell"><div class="compat-prod-icon" style="background:linear-gradient(135deg,#14532d,#22c55e)">B</div><div><div class="compat-prod-name">Boris — PMDG 777 Ultimate Sound</div><div class="compat-prod-dev">Boris</div></div></div></td>
             <td class="compat-cell-center"><span class="compat-yes"><i class="ti ti-check" style="font-size:10px"></i> Serasi</span></td>
             <td class="compat-cell-center"><span class="compat-yes"><i class="ti ti-check" style="font-size:10px"></i> Serasi</span></td>
           </tr>
@@ -2243,10 +2309,36 @@ var PRODS=[
     badge:'new',
     desc_bm: 'FSRealistic Pro meningkatkan pengalaman simulasi anda dengan menambah bunyi dan getaran realistik yang tiada dalam MSFS secara lalai. Termasuk bunyi enjin yang lebih hidup, turbulens terasa, bunyi roda mendarat, angin, hujan, dan banyak lagi — menjadikan setiap penerbangan terasa seperti benar-benar berada dalam kokpit.',
     desc_en: 'FSRealistic Pro enhances your simulation experience by adding realistic sounds and vibrations not present in MSFS by default. Includes more lifelike engine sounds, felt turbulence, landing gear sounds, wind, rain, and much more — making every flight feel like you are truly in the cockpit.'
+  },
+  {
+    id:13,
+    name:'PMDG 737NG Sound',
+    cat:'boris',
+    thumb:'ct-boris',
+    image:'https://i.imgur.com/NPqcOZO.jpeg',
+    emoji:'&#128266;',
+    price:30,
+    tags:['Sound','PMDG 737','MSFS2020','MSFS2024'],
+    badge:'grn',
+    desc_bm: 'Pakej bunyi Boris untuk PMDG 737NG. Tingkatkan pengalaman terbang anda dengan bunyi enjin, kokpit, dan persekitaran yang lebih realistik dan imersif. Serasi dengan MSFS 2020 dan MSFS 2024.',
+    desc_en: 'Boris sound package for PMDG 737NG. Elevate your flight with more realistic engine, cockpit, and environmental sounds. Compatible with MSFS 2020 and MSFS 2024.'
+  },
+  {
+    id:14,
+    name:'PMDG 777 Ultimate Sound',
+    cat:'boris',
+    thumb:'ct-boris',
+    image:'https://i.imgur.com/1cMPVwV.jpeg',
+    emoji:'&#128266;',
+    price:30,
+    tags:['Sound','PMDG 777','MSFS2020','MSFS2024'],
+    badge:'grn',
+    desc_bm: 'Pakej bunyi Boris untuk PMDG 777. Nikmati bunyi enjin GE90 yang mendebarkan, bunyi hydraulik, dan suasana kokpit ultra-realistik. Serasi dengan MSFS 2020 dan MSFS 2024.',
+    desc_en: 'Boris sound package for PMDG 777. Experience thunderous GE90 engine sounds, hydraulics, and ultra-realistic cockpit ambience. Compatible with MSFS 2020 and MSFS 2024.'
   }
 ];
-var DEVLBL={fenix:'Fenix Simulations',pmdg:'PMDG',gsx:'FSDreamTeam',navigraph:'Navigraph',inibuilds:'iniBuilds',beyondatc:'BeyondATC',fs2crew:'FS2Crew',ifly:'iFly',fsrealistic:'FSRealistic'};
-var BDGCLS={hot:'b-hot',new:'b-new'};
+var DEVLBL={fenix:'Fenix Simulations',pmdg:'PMDG',gsx:'FSDreamTeam',navigraph:'Navigraph',inibuilds:'iniBuilds',beyondatc:'BeyondATC',fs2crew:'FS2Crew',ifly:'iFly',fsrealistic:'FSRealistic',boris:'Boris'};
+var BDGCLS={hot:'b-hot',new:'b-new',grn:'b-grn'};
 var cart=[],filt='all',srt='default',payMethod='tng',lang='bm';
 var uploadedFile=null,uploadedB64=null;
 var _authFromCheckout = false;
@@ -2681,7 +2773,7 @@ function getStarHtml(avg, count){
 }
 
 function getCatChipClass(cat){
-  var map={fenix:'chip-fenix',pmdg:'chip-pmdg',gsx:'chip-gsx',GSX:'chip-gsx',navigraph:'chip-navigraph',inibuilds:'chip-inibuilds',beyondatc:'chip-beyondatc',fs2crew:'chip-fs2crew',ifly:'chip-ifly',fsrealistic:'chip-fsrealistic'};
+  var map={fenix:'chip-fenix',pmdg:'chip-pmdg',gsx:'chip-gsx',GSX:'chip-gsx',navigraph:'chip-navigraph',inibuilds:'chip-inibuilds',beyondatc:'chip-beyondatc',fs2crew:'chip-fs2crew',ifly:'chip-ifly',fsrealistic:'chip-fsrealistic',boris:'chip-boris'};
   return map[cat]||'';
 }
 
@@ -2808,6 +2900,7 @@ function showProductDescription(id){
   document.getElementById('reviewName').value='';
   document.getElementById('reviewText').value='';
   loadReviews(id);
+  try{ sessionStorage.setItem('adamsCurrentProduct', id); }catch(e){}
   showPage('pageDescription');
   window.scrollTo(0,0);
 }
@@ -2919,6 +3012,7 @@ function doFilter(f,btn){
   document.querySelectorAll('.chip').forEach(function(c){c.classList.remove('on');});
   if(btn) btn.classList.add('on');
   render();
+  setTimeout(fbarFocusActive, 0);
 }
 
 function doSort(v){srt=v;render();}
@@ -3782,14 +3876,97 @@ function saveSettings(){
 var searchQuery = '';
 function doSearch(val){
   searchQuery = val.trim().toLowerCase();
-  document.getElementById('searchClear').style.display = searchQuery ? 'block' : 'none';
+  updateSearchClr();
   render();
+}
+function updateSearchClr(){
+  var v = (document.getElementById('searchInput').value||'').trim();
+  document.getElementById('searchClear').style.display = v ? 'block' : 'none';
 }
 function clearSearch(){
   document.getElementById('searchInput').value = '';
   searchQuery = '';
   document.getElementById('searchClear').style.display = 'none';
   render();
+}
+
+// ===== FILTER CAROUSEL (single item) =====
+var _fbarIdx = 0;
+var _fbarChips = [];
+
+// Color map per category for the label
+var _fbarColors = {
+  all: '#a5b4fc',
+  fenix: '#e0aaff',
+  pmdg: '#93c5fd',
+  gsx: '#fdba74',
+  navigraph: '#7dd3fc',
+  inibuilds: '#fca5a5',
+  beyondatc: '#c4b5fd',
+  fs2crew: '#fde68a',
+  ifly: '#93c5fd',
+  fsrealistic: '#d1d5db',
+  boris: '#4ade80'
+};
+
+function fbarInit(){
+  _fbarChips = Array.from(document.querySelectorAll('#fbarTrack .chip'));
+  fbarRender();
+}
+
+function fbarScroll(dir){
+  var total = _fbarChips.length;
+  _fbarIdx = (_fbarIdx + dir + total) % total; // wrap around
+  var chip = _fbarChips[_fbarIdx];
+  if(!chip) return;
+  // Apply the filter
+  var cat = chip.dataset.cat || 'all';
+  doFilter(cat, chip);
+  fbarRender(dir);
+}
+
+function fbarRender(dir){
+  var chip = _fbarChips[_fbarIdx];
+  if(!chip) return;
+  var label = chip.dataset.label || chip.textContent;
+  var cat = chip.dataset.cat || 'all';
+  var color = _fbarColors[cat] || 'var(--txt)';
+  var total = _fbarChips.length;
+
+  var lbl = document.getElementById('fbarLabel');
+  var ctr = document.getElementById('fbarCounter');
+  var disp = document.getElementById('fbarDisplay');
+
+  // Slide animation
+  if(dir !== undefined){
+    var fromX = dir > 0 ? 40 : -40;
+    disp.style.transition = 'none';
+    disp.style.opacity = '0';
+    disp.style.transform = 'translateX('+fromX+'px)';
+    requestAnimationFrame(function(){
+      requestAnimationFrame(function(){
+        disp.style.transition = 'all .25s cubic-bezier(.22,1,.36,1)';
+        disp.style.opacity = '1';
+        disp.style.transform = 'translateX(0)';
+      });
+    });
+  }
+
+  lbl.textContent = label;
+  lbl.style.color = color;
+  ctr.textContent = (_fbarIdx + 1) + ' / ' + total;
+
+  // Update arrows — loop so always enabled
+  document.getElementById('fbarPrev').disabled = false;
+  document.getElementById('fbarNext').disabled = false;
+}
+
+function fbarFocusActive(){
+  var active = document.querySelector('#fbarTrack .chip.on');
+  if(!active) return;
+  var idx = _fbarChips.indexOf(active);
+  if(idx >= 0) _fbarIdx = idx;
+  fbarRender();
 }
 
 // ===== DISCOUNT CODES =====
@@ -4070,6 +4247,7 @@ function sendBuyerMsg() {
 render();
 applyLang();
 loadSession();
+fbarInit();
 updateNavUser();
 updateBuyerChatFab();
 updateWishBadge();
@@ -4110,30 +4288,48 @@ autoFillCheckout();
   if(savedPage === 'pageCheckout'){
     if(cart.length > 0 && currentUser){
       showPage('pageCheckout');
-      // Restore step — kalau step 3 (Payment), kekal kat step 3 bukan reset ke 2
       var stepToRestore = (savedStep >= 2 && savedStep <= 3) ? savedStep : 2;
       setCheckoutStep(stepToRestore);
       window.scrollTo(0,0);
       autoFillCheckout();
     } else {
-      // Cart kosong atau tak login — pergi shop
       try{ sessionStorage.removeItem('adamsActivePage'); sessionStorage.removeItem('adamsCartSession'); sessionStorage.removeItem('adamsCheckoutStep'); }catch(e){}
       showPage('pageShop');
     }
   } else if(savedPage === 'pageDescription'){
-    // Description page tapi tiada produk data — pergi shop
-    if(!currentProductId){
-      try{ sessionStorage.removeItem('adamsActivePage'); }catch(e){}
+    // Cuba restore product dari sessionStorage
+    var savedProd = null;
+    try{ savedProd = sessionStorage.getItem('adamsCurrentProduct'); }catch(e){}
+    var prodId = savedProd ? parseInt(savedProd) : null;
+    if(prodId && PRODS.find(function(x){ return x.id === prodId; })){
+      showProductDescription(prodId);
+    } else {
+      try{ sessionStorage.removeItem('adamsActivePage'); sessionStorage.removeItem('adamsCurrentProduct'); }catch(e){}
       showPage('pageShop');
       window.scrollTo(0,0);
     }
+  } else if(savedPage === 'pageWishlist'){
+    if(currentUser){
+      showWishlist();
+    } else {
+      try{ sessionStorage.removeItem('adamsActivePage'); }catch(e){}
+      showPage('pageShop');
+    }
+  } else if(savedPage === 'pageHistory'){
+    if(currentUser){
+      showPage('pageHistory');
+      window.scrollTo(0,0);
+    } else {
+      try{ sessionStorage.removeItem('adamsActivePage'); }catch(e){}
+      showPage('pageShop');
+    }
   } else if(savedPage === 'pageSuccess'){
-    // Success page lepas refresh — pergi shop (order dah submit)
     try{ sessionStorage.removeItem('adamsActivePage'); sessionStorage.removeItem('adamsCartSession'); sessionStorage.removeItem('adamsCheckoutStep'); }catch(e){}
     showPage('pageShop');
     window.scrollTo(0,0);
+  } else if(savedPage === 'pageShop' || !savedPage){
+    if(currentUser) showPage('pageShop');
   } else if(currentUser){
-    // Tiada saved page yang spesifik — default ke shop
     showPage('pageShop');
   }
 })();
