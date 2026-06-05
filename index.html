@@ -519,6 +519,16 @@ body{background:var(--bg);color:var(--txt);font-family:Inter,sans-serif;font-siz
 .price-wrap{display:flex;flex-direction:column;gap:1px}
 .price{font-size:22px;font-weight:800;color:#fff;letter-spacing:-.5px;line-height:1}
 .price-label{font-size:9px;color:var(--sub);text-transform:uppercase;letter-spacing:.4px;font-weight:600}
+/* Sale price styles */
+.price-sale-wrap{display:flex;flex-direction:column;gap:2px}
+.price-sale-row{display:flex;align-items:center;gap:6px}
+.price-original{font-size:13px;font-weight:700;color:var(--sub);text-decoration:line-through;letter-spacing:-.2px}
+.price-badge-day{font-size:8px;font-weight:800;color:#4ade80;background:rgba(34,197,94,.15);border:1px solid rgba(74,222,128,.35);padding:2px 6px;border-radius:20px;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;animation:salePulse 2s ease-in-out infinite}
+@keyframes salePulse{0%,100%{opacity:1}50%{opacity:.65}}
+.desc-price-sale{display:flex;flex-direction:column;gap:6px;margin-bottom:24px}
+.desc-price-sale .desc-original{font-size:18px;font-weight:700;color:var(--sub);text-decoration:line-through;letter-spacing:-.3px}
+.desc-price-sale .desc-new-price{font-size:32px;font-weight:800;color:var(--gold);letter-spacing:-.5px;line-height:1}
+.desc-price-sale .desc-day-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(34,197,94,.12);border:1px solid rgba(74,222,128,.35);color:#4ade80;font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;letter-spacing:.3px;width:fit-content;animation:salePulse 2s ease-in-out infinite}
 .card-actions{display:flex;gap:6px;align-items:center}
 .add-btn{background:var(--acc);color:#fff;border:none;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;display:flex;align-items:center;gap:5px;letter-spacing:.2px}
 .add-btn:hover{opacity:.88;transform:translateY(-1px)}
@@ -2739,7 +2749,9 @@ function openPeek(id){
   document.getElementById('peekName').textContent = p.name;
   document.getElementById('peekDesc').textContent = lang==='bm'?p.desc_bm:p.desc_en;
   document.getElementById('peekTags').innerHTML = p.tags.map(function(t){return '<span class="tag" style="font-size:11px;padding:3px 9px">'+t+'</span>';}).join('');
-  document.getElementById('peekPrice').textContent = 'RM '+p.price;
+  document.getElementById('peekPrice').innerHTML = p.cat==='boris'
+    ? '<span style="font-size:16px;color:var(--sub);text-decoration:line-through;margin-right:6px">RM '+p.price+'</span>RM 27'
+    : 'RM '+p.price;
   document.getElementById('peekBuyBtn').onclick = function(){ closePeek(); buyNow(id); };
   document.getElementById('peekAddBtn').onclick = function(){ addToCart(id); };
   document.getElementById('peekDetailBtn').onclick = function(){ closePeek(); showProductDescription(id); };
@@ -2831,7 +2843,14 @@ function render(){
           (!p.soon ? stockHtml(p.id) : '')+
           '<div class="card-tags">'+p.tags.map(function(t){return '<span class="tag">'+t+'</span>';}).join('')+'</div>'+
           '<div class="card-foot">'+
-            '<div class="price-wrap"><div class="price-label">Harga</div><span class="price">RM '+p.price+'</span></div>'+
+            (p.cat==='boris' ?
+              '<div class="price-sale-wrap">'+
+                '<div class="price-sale-row"><span class="price" style="color:var(--gold)">RM 27</span><span class="price-original">RM '+p.price+'</span></div>'+
+                '<span class="price-badge-day">⚡ Only For This Day!</span>'+
+              '</div>'
+            :
+              '<div class="price-wrap"><div class="price-label">Harga</div><span class="price">RM '+p.price+'</span></div>'
+            )+
             '<div class="card-actions">'+
               (!p.soon ? '<button class="add-btn" id="addbtn-'+p.id+'" onclick="event.stopPropagation(); addToCart('+p.id+')"><i class="ti ti-shopping-cart-plus" style="font-size:12px"></i> '+T('addBtn')+'</button>' : '<button class="add-btn" style="background:var(--surf3);color:var(--muted);cursor:default" disabled><i class="ti ti-clock" style="font-size:12px"></i> Soon</button>')+
             '</div>'+
@@ -2888,7 +2907,13 @@ function showProductDescription(id){
         '<div class="feat-box"><i class="ti ti-infinity"></i><span>'+f2+'</span></div>' +
         '<div class="feat-box"><i class="ti ti-refresh"></i><span>'+f3+'</span></div>' +
       '</div>' +
-      '<div class="desc-price">RM ' + p.price + '</div>' +
+      (p.cat==='boris' ?
+        '<div class="desc-price-sale">'+
+          '<div><span class="desc-original">RM '+p.price+'</span></div>'+
+          '<div class="desc-new-price">RM 27</div>'+
+          '<div class="desc-day-badge"><i class="ti ti-clock-bolt" style="font-size:11px"></i> Only For This Day!</div>'+
+        '</div>'
+      : '<div class="desc-price">RM ' + p.price + '</div>') +
       '<div class="desc-actions">' +
         '<button class="btn-pri" onclick="buyNow('+p.id+')"><i class="ti ti-credit-card"></i> ' + T('buyNowBtn') + '</button>' +
         '<button class="btn-secondary" id="desc-addbtn-'+p.id+'" onclick="addToCartFromDesc('+p.id+')"><i class="ti ti-shopping-cart"></i> ' + T('addToCartBtn') + '</button>' +
@@ -2972,8 +2997,9 @@ function addToCartFromDesc(id){
   var p=PRODS.find(function(x){return x.id===id;});
   if(!p) return;
   if(cart.find(function(x){return x.id===id;})){toast(p.name+T('toastDupe'));return;}
-  
-  cart.push(Object.assign({},p));
+  var item=Object.assign({},p);
+  if(item.cat==='boris') item.price=27;
+  cart.push(item);
   document.getElementById('cartBadge').textContent=cart.length;
   renderCart();
   toast(p.name+T('toastAdded'));
@@ -3000,7 +3026,9 @@ function buyNow(id) {
     return;
   }
   if(!cart.find(function(x){return x.id===id;})){
-    cart.push(Object.assign({},p));
+    var item=Object.assign({},p);
+    if(item.cat==='boris') item.price=27;
+    cart.push(item);
     document.getElementById('cartBadge').textContent=cart.length;
     renderCart();
   }
@@ -3021,7 +3049,9 @@ function addToCart(id){
   var p=PRODS.find(function(x){return x.id===id;});
   if(!p) return;
   if(cart.find(function(x){return x.id===id;})){toast(p.name+T('toastDupe'));return;}
-  cart.push(Object.assign({},p));
+  var item=Object.assign({},p);
+  if(item.cat==='boris') item.price=27;
+  cart.push(item);
   document.getElementById('cartBadge').textContent=cart.length;
   var btn=document.getElementById('addbtn-'+id);
   if(btn){btn.classList.add('added');btn.textContent=T('addedBtn');
