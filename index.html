@@ -409,6 +409,9 @@ body{background:var(--bg);color:var(--txt);font-family:Inter,sans-serif;font-siz
 /* NAVIGRAPH */
 .chip[data-cat=navigraph]:hover{color:#7dd3fc}
 .chip[data-cat=navigraph].on{background:rgba(29,78,216,.15);border-color:rgba(125,211,252,.4);color:#7dd3fc;box-shadow:0 2px 12px rgba(29,78,216,.18);transform:translateY(-1px)}
+/* REX */
+.chip[data-cat=rex]:hover{color:#c0c0c0}
+.chip[data-cat=rex].on{background:rgba(160,160,160,.15);border-color:rgba(192,192,192,.45);color:#c0c0c0;box-shadow:0 2px 12px rgba(160,160,160,.2);transform:translateY(-1px)}
 /* INIBUILDS */
 .chip[data-cat=inibuilds]:hover{color:#fca5a5}
 .chip[data-cat=inibuilds].on{background:rgba(220,38,38,.15);border-color:rgba(252,165,165,.4);color:#fca5a5;box-shadow:0 2px 12px rgba(220,38,38,.18);transform:translateY(-1px)}
@@ -477,6 +480,7 @@ body{background:var(--bg);color:var(--txt);font-family:Inter,sans-serif;font-siz
 .card.cat-pmdg:hover{border-color:rgba(37,99,235,.55);box-shadow:0 20px 50px rgba(37,99,235,.2);background:linear-gradient(160deg,#050a18 55%,#091428)}
 .card.cat-gsx:hover,.card.cat-GSX:hover{border-color:rgba(240,120,0,.5);box-shadow:0 20px 50px rgba(240,120,0,.16);background:linear-gradient(160deg,#0d0800 55%,#1a1000)}
 .card.cat-navigraph:hover{border-color:rgba(29,78,216,.5);box-shadow:0 20px 50px rgba(29,78,216,.16);background:linear-gradient(160deg,#030509 55%,#060c1c)}
+.card.cat-rex:hover{border-color:rgba(160,160,160,.45);box-shadow:0 20px 50px rgba(160,160,160,.15);background:linear-gradient(160deg,#0d0d0d 55%,#1a1a1a)}
 .card.cat-inibuilds:hover{border-color:rgba(220,38,38,.45);box-shadow:0 20px 50px rgba(220,38,38,.16);background:linear-gradient(160deg,#0e0303 55%,#1a0606)}
 .card.cat-beyondatc:hover{border-color:rgba(109,40,217,.5);box-shadow:0 20px 50px rgba(109,40,217,.2);background:linear-gradient(160deg,#050311 55%,#0a061c)}
 .card.cat-fs2crew:hover{border-color:rgba(234,179,8,.5);box-shadow:0 20px 50px rgba(234,179,8,.16);background:linear-gradient(160deg,#0d0a00 55%,#1a1400)}
@@ -497,6 +501,7 @@ body{background:var(--bg);color:var(--txt);font-family:Inter,sans-serif;font-siz
 .ct-fenix{background:linear-gradient(135deg,#071828,#0d2540)}
 .ct-pmdg{background:linear-gradient(135deg,#060e1e,#0a1630)}
 .ct-gsx{background:linear-gradient(135deg,#0f0e04,#1a1a06)}
+.ct-rex{background:linear-gradient(135deg,#1a1a1a,#2d2d2d)}
 .ct-fs2{background:linear-gradient(135deg,#1a1400,#2e2200)}
 .ct-nav{background:linear-gradient(135deg,#06080f,#0e1220)}
 .ct-ifly{background:linear-gradient(135deg,#020c1e,#041e3a)}
@@ -531,6 +536,7 @@ body{background:var(--bg);color:var(--txt);font-family:Inter,sans-serif;font-siz
 .chip-pmdg{background:rgba(37,99,235,.15);color:#93c5fd;border:1px solid rgba(37,99,235,.3)}
 .chip-gsx{background:rgba(240,120,0,.15);color:#fdba74;border:1px solid rgba(240,120,0,.3)}
 .chip-navigraph{background:rgba(29,78,216,.15);color:#7dd3fc;border:1px solid rgba(29,78,216,.3)}
+.chip-rex{background:rgba(160,160,160,.15);color:#c0c0c0;border:1px solid rgba(160,160,160,.3)}
 .chip-inibuilds{background:rgba(220,38,38,.15);color:#fca5a5;border:1px solid rgba(220,38,38,.3)}
 .chip-beyondatc{background:rgba(109,40,217,.18);color:#c4b5fd;border:1px solid rgba(109,40,217,.3)}
 .chip-fs2crew{background:rgba(234,179,8,.15);color:#fde68a;border:1px solid rgba(234,179,8,.3)}
@@ -1678,6 +1684,7 @@ html,body{max-width:100%;overflow-x:hidden}
           <button class="chip" data-cat="pmdg" data-label="PMDG" onclick="doFilter('pmdg',this)">PMDG</button>
           <button class="chip" data-cat="gsx" data-label="GSX Pro" onclick="doFilter('gsx',this)">GSX Pro</button>
           <button class="chip" data-cat="navigraph" data-label="Navigraph" onclick="doFilter('navigraph',this)">Navigraph</button>
+          <button class="chip" data-cat="rex" data-label="REX" onclick="doFilter('rex',this)">REX</button>
           <button class="chip" data-cat="inibuilds" data-label="iniBuilds" onclick="doFilter('inibuilds',this)">iniBuilds</button>
           <button class="chip" data-cat="beyondatc" data-label="BeyondATC" onclick="doFilter('beyondatc',this)">BeyondATC</button>
           <button class="chip" data-cat="fs2crew" data-label="FS2Crew" onclick="doFilter('fs2crew',this)">FS2Crew</button>
@@ -1710,6 +1717,24 @@ html,body{max-width:100%;overflow-x:hidden}
       <p id="bundleSub">Jimat lebih bila beli bersama. Tawaran terhad!</p>
     </div>
     <button class="bundle-btn" onclick="addBundle()">Grab Bundle — RM 58</button>
+  </div>
+
+  <!-- REX ATMOS BUNDLE OFFERS -->
+  <div style="margin:0 28px 12px;display:flex;flex-direction:column;gap:10px">
+    <div style="background:linear-gradient(135deg,#0a1628,#0d2040);border:1px solid rgba(56,139,253,.35);border-radius:12px;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
+      <div>
+        <div style="color:#fff;font-size:13px;font-weight:700;margin-bottom:3px">☁️ REX Atmos 2024 + Navigraph</div>
+        <div style="color:#7cb9ff;font-size:12px">Cuaca realistik + carta terkini — combo terbaik!</div>
+      </div>
+      <button onclick="(function(){var r=PRODUCTS.find(function(p){return p.slug==='rex-atmos-2024'});var n=PRODUCTS.find(function(p){return p.slug==='navigraph-unlimited'});if(r)addToCart(r);if(n)addToCart(n);})()" style="background:linear-gradient(135deg,#1565c0,#1e88e5);color:#fff;border:none;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;transition:opacity .15s" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">Tambah ke Troli — RM 65</button>
+    </div>
+    <div style="background:linear-gradient(135deg,#0a1628,#0d2040);border:1px solid rgba(56,139,253,.25);border-radius:12px;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
+      <div>
+        <div style="color:#fff;font-size:13px;font-weight:700;margin-bottom:3px">☁️ REX Atmos 2020 + Navigraph</div>
+        <div style="color:#7cb9ff;font-size:12px">Untuk pengguna MSFS 2020 — lengkap dengan carta AIRAC!</div>
+      </div>
+      <button onclick="(function(){var r=PRODUCTS.find(function(p){return p.slug==='rex-atmos-2020'});var n=PRODUCTS.find(function(p){return p.slug==='navigraph-unlimited'});if(r)addToCart(r);if(n)addToCart(n);})()" style="background:linear-gradient(135deg,#1565c0,#1e88e5);color:#fff;border:none;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;transition:opacity .15s" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">Tambah ke Troli — RM 50</button>
+    </div>
   </div>
 
   <!-- BORIS DEAL RIBBON -->
@@ -1799,6 +1824,16 @@ html,body{max-width:100%;overflow-x:hidden}
           <tr>
             <td><div class="compat-prod-cell"><div class="compat-prod-icon" style="background:linear-gradient(135deg,#14532d,#22c55e)">B</div><div><div class="compat-prod-name">Boris — PMDG 777 Ultimate Sound</div><div class="compat-prod-dev">Boris</div></div></div></td>
             <td class="compat-cell-center"><span class="compat-yes"><i class="ti ti-check" style="font-size:10px"></i> Serasi</span></td>
+            <td class="compat-cell-center"><span class="compat-yes"><i class="ti ti-check" style="font-size:10px"></i> Serasi</span></td>
+          </tr>
+          <tr>
+            <td><div class="compat-prod-cell"><div class="compat-prod-icon" style="background:linear-gradient(135deg,#1a1a1a,#4a4a4a)">R</div><div><div class="compat-prod-name">REX Atmos (MSFS 2020)</div><div class="compat-prod-dev">REX</div></div></div></td>
+            <td class="compat-cell-center"><span class="compat-yes"><i class="ti ti-check" style="font-size:10px"></i> Serasi</span></td>
+            <td class="compat-cell-center"><span class="compat-no"><i class="ti ti-x" style="font-size:10px"></i> Tidak Serasi</span></td>
+          </tr>
+          <tr>
+            <td><div class="compat-prod-cell"><div class="compat-prod-icon" style="background:linear-gradient(135deg,#2a2a2a,#606060)">R</div><div><div class="compat-prod-name">REX Atmos (MSFS 2024)</div><div class="compat-prod-dev">REX</div></div></div></td>
+            <td class="compat-cell-center"><span class="compat-no"><i class="ti ti-x" style="font-size:10px"></i> Tidak Serasi</span></td>
             <td class="compat-cell-center"><span class="compat-yes"><i class="ti ti-check" style="font-size:10px"></i> Serasi</span></td>
           </tr>
         </tbody>
@@ -2323,7 +2358,7 @@ var PRODS=[
     thumb:'ct-nav',
     image:'https://i.imgur.com/sbzIhYn.png',
     emoji:'&#128506;',
-    price:19,
+    price:20,
     tags:['Charts','NavData','AIRAC'],
     badge:'new',
     desc_bm: 'Akses tanpa had untuk carta navigasi Jeppesen yang dikemaskini mengikut data AIRAC sebenar dunia penerbangan. Sangat penting untuk perancangan penerbangan IFR.',
@@ -2445,6 +2480,38 @@ var PRODS=[
     desc_en: 'Boris sound package for PMDG 737NG. Elevate your flight with more realistic engine, cockpit, and environmental sounds. Compatible with MSFS 2020 and MSFS 2024.'
   },
   {
+    id:15,
+    name:'REX Atmos',
+    slug:'rex-atmos-2020',
+    cat:'rex',
+    thumb:'ct-rex',
+    image:'https://i.imgur.com/ZbZR9eu.jpeg',
+    emoji:'&#127756;',
+    price:30,
+    tags:['Weather','REX','MSFS2020'],
+    badge:'new',
+    msfs2020:true,
+    msfs2024:false,
+    desc_bm: 'REX Atmos membawa sistem cuaca yang lebih realistik dan imersif ke dalam MSFS 2020. Dengan teknologi rendering awan dan atmosfera canggih, setiap penerbangan terasa seperti benar-benar berada dalam persekitaran cuaca sebenar — dari ribut petir hingga jerebu nipis yang memukau.',
+    desc_en: 'REX Atmos brings a more realistic and immersive weather system to MSFS 2020. With advanced cloud and atmosphere rendering technology, every flight feels like you are truly within real weather conditions — from thunderstorms to subtle haze.'
+  },
+  {
+    id:16,
+    name:'REX Atmos',
+    slug:'rex-atmos-2024',
+    cat:'rex',
+    thumb:'ct-rex',
+    image:'https://i.imgur.com/ZbZR9eu.jpeg',
+    emoji:'&#127756;',
+    price:45,
+    tags:['Weather','REX','MSFS2024'],
+    badge:'new',
+    msfs2020:false,
+    msfs2024:true,
+    desc_bm: 'REX Atmos untuk MSFS 2024 — sistem cuaca generasi baharu yang mengoptimumkan sepenuhnya keupayaan grafik terkini simulator. Nikmati awan volumetrik ultra-realistik, peralihan cuaca dinamik, dan atmosfera yang hidup dalam pengalaman penerbangan paling moden.',
+    desc_en: 'REX Atmos for MSFS 2024 — next-generation weather system fully optimized for the latest simulator graphics capabilities. Enjoy ultra-realistic volumetric clouds, dynamic weather transitions, and a living atmosphere in the most modern flight experience.'
+  },
+  {
     id:14,
     name:'PMDG 777 Ultimate Sound',
     slug:'boris-pmdg-777-sound',
@@ -2459,7 +2526,7 @@ var PRODS=[
     desc_en: 'Boris sound package for PMDG 777. Experience thunderous GE90 engine sounds, hydraulics, and ultra-realistic cockpit ambience. Compatible with MSFS 2020 and MSFS 2024.'
   }
 ];
-var DEVLBL={fenix:'Fenix Simulations',pmdg:'PMDG',gsx:'FSDreamTeam',navigraph:'Navigraph',inibuilds:'iniBuilds',beyondatc:'BeyondATC',fs2crew:'FS2Crew',ifly:'iFly',fsrealistic:'FSRealistic',boris:'Boris'};
+var DEVLBL={fenix:'Fenix Simulations',pmdg:'PMDG',gsx:'FSDreamTeam',navigraph:'Navigraph',inibuilds:'iniBuilds',beyondatc:'BeyondATC',fs2crew:'FS2Crew',ifly:'iFly',fsrealistic:'FSRealistic',boris:'Boris',rex:'REX'};
 var BDGCLS={hot:'b-hot',new:'b-new',grn:'b-grn'};
 var cart=[],filt='all',srt='default',payMethod='tng',lang='bm';
 var uploadedFile=null,uploadedB64=null;
