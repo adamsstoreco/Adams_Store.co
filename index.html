@@ -4558,6 +4558,7 @@ window.addEventListener('resize', function(){
 var ROUTES = {
   '/': function(){ showPage('pageShop'); window.scrollTo(0,0); },
   '/payment': function(){ if(cart.length>0){ showPage('pageCheckout'); window.scrollTo(0,0); } else { navigateTo('/'); } },
+  '/troli': function(){ openCart(); },
   '/wishlist': function(){ if(currentUser){ showWishlist(); } else { openAuth('signin'); } },
   '/history': function(){ if(currentUser){ showHistory(); } else { openAuth('signin'); } },
   '/signin': function(){ showPage('pageShop'); openAuth('signin'); },
