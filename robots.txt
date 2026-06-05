@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+
+# Block admin and private pages
+Disallow: /admin
+Disallow: /payment
+Disallow: /history
+Disallow: /wishlist
+
+Sitemap: https://adams-co.vercel.app/sitemap.xml
