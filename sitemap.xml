@@ -97,4 +97,21 @@
     <priority>0.9</priority>
   </url>
 
+  <!-- Blog pages -->
+  <url>
+    <loc>https://adams-co.vercel.app/blog</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://adams-co.vercel.app/blog/navigraph</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://adams-co.vercel.app/blog/top-addons-msfs-2024</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
 </urlset>
