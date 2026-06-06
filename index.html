@@ -1773,14 +1773,14 @@ html,body{max-width:100%;overflow-x:hidden}
         <div style="color:#fff;font-size:13px;font-weight:700;margin-bottom:3px">☁️ REX Atmos 2024 + Navigraph</div>
         <div style="color:#7cb9ff;font-size:12px">Cuaca realistik + carta terkini — combo terbaik!</div>
       </div>
-      <button onclick="(function(){var r=PRODUCTS.find(function(p){return p.slug==='rex-atmos-2024'});var n=PRODUCTS.find(function(p){return p.slug==='navigraph-unlimited'});if(r)addToCart(r);if(n)addToCart(n);})()" style="background:linear-gradient(135deg,#1565c0,#1e88e5);color:#fff;border:none;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;transition:opacity .15s" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">Tambah ke Troli — RM 65</button>
+      <button onclick="(function(){var r=PRODS.find(function(p){return p.slug==='rex-atmos-2024'});var n=PRODS.find(function(p){return p.slug==='navigraph-unlimited'});if(r)addToCart(r.id);if(n)addToCart(n.id);})()" style="background:linear-gradient(135deg,#1565c0,#1e88e5);color:#fff;border:none;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;transition:opacity .15s" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">Tambah ke Troli — RM 65</button>
     </div>
     <div style="background:linear-gradient(135deg,#0a1628,#0d2040);border:1px solid rgba(56,139,253,.25);border-radius:12px;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
       <div>
         <div style="color:#fff;font-size:13px;font-weight:700;margin-bottom:3px">☁️ REX Atmos 2020 + Navigraph</div>
         <div style="color:#7cb9ff;font-size:12px">Untuk pengguna MSFS 2020 — lengkap dengan carta AIRAC!</div>
       </div>
-      <button onclick="(function(){var r=PRODUCTS.find(function(p){return p.slug==='rex-atmos-2020'});var n=PRODUCTS.find(function(p){return p.slug==='navigraph-unlimited'});if(r)addToCart(r);if(n)addToCart(n);})()" style="background:linear-gradient(135deg,#1565c0,#1e88e5);color:#fff;border:none;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;transition:opacity .15s" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">Tambah ke Troli — RM 50</button>
+      <button onclick="(function(){var r=PRODS.find(function(p){return p.slug==='rex-atmos-2020'});var n=PRODS.find(function(p){return p.slug==='navigraph-unlimited'});if(r)addToCart(r.id);if(n)addToCart(n.id);})()" style="background:linear-gradient(135deg,#1565c0,#1e88e5);color:#fff;border:none;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;transition:opacity .15s" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">Tambah ke Troli — RM 50</button>
     </div>
   </div>
 
@@ -2506,7 +2506,7 @@ var PRODS=[
     thumb:'ct-fsr',
     image:'https://i.imgur.com/IPfnbxG.jpeg',
     emoji:'&#128266;',
-    price:12,
+    price:17,
     tags:['Sound','Immersion','Effects'],
     badge:'new',
     desc_bm: 'FSRealistic Pro meningkatkan pengalaman simulasi anda dengan menambah bunyi dan getaran realistik yang tiada dalam MSFS secara lalai. Termasuk bunyi enjin yang lebih hidup, turbulens terasa, bunyi roda mendarat, angin, hujan, dan banyak lagi — menjadikan setiap penerbangan terasa seperti benar-benar berada dalam kokpit.',
